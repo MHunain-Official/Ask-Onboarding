@@ -1,0 +1,15 @@
+---
+description: Code style and clarity rules for Ask Onboarding
+globs:
+  - "**/*.{py,ts,tsx}"
+---
+
+# Code style
+
+- Boring, readable code. Small files (< 200 lines), small functions (< 30 lines), one job each.
+- Plain descriptive names (`split_text_into_chunks`, not `proc`).
+- Comment **why**, not what, for non-obvious decisions.
+- Python: ruff, type hints on every function, no `Any` unless commented. Early returns.
+- TypeScript: `strict: true`, no `any`, no default exports except Next.js pages.
+- Config only in `config.py` / env. No scattered `os.environ`.
+- Every external call has a timeout and bounded retry (max 3).

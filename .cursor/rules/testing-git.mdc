@@ -1,0 +1,13 @@
+---
+description: Testing and git commit conventions
+globs:
+  - "**/*"
+---
+
+# Testing and git
+
+- Fake Embedder/LLM interfaces; tests need no API keys.
+- Coverage target ≥ 80% on ingestion/, retrieval/, services/.
+- Conventional Commits: feat/fix/test/docs/chore/refactor/ci.
+- One logical change per commit. Run checks before committing.
+- Never fabricate metrics, screenshots, or AI_LOG entries.
