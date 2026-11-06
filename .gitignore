@@ -1,0 +1,56 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Uploads / runtime
+uploads/
+*.log
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker / tooling
+.docker/
+.cache/
+
+# Eval artifacts
+backend/eval/report.md
+backend/eval/.tmp/
+
+# OS
+Thumbs.db
+
+# Assignment brief PDF (reviewers already have it; keep the repo lean)
+Take-Home*.pdf
+*.pdf
+!sample-data/docs/*.pdf
