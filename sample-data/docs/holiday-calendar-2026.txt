@@ -1,0 +1,24 @@
+COMPANY HOLIDAY CALENDAR 2026
+=============================
+
+The company observes 11 paid holidays in 2026. They do not count against PTO.
+
+Thu  Jan 1    New Year's Day
+Mon  Jan 19   Martin Luther King Jr. Day (US offices)
+Mon  May 25   Memorial Day (US offices)
+Fri  Jul 3    Independence Day (observed, US offices)
+Mon  Sep 7    Labor Day (US offices)
+Thu  Nov 26   Thanksgiving (US offices)
+Fri  Nov 27   Day after Thanksgiving
+Fri  Dec 25   Christmas Day
+Mon  Dec 28   Winter break day
+Tue  Dec 29   Winter break day
+Wed  Dec 30   Winter break day
+
+Notes
+-----
+- Toronto and London offices follow local public holidays in place of the US-only dates.
+  See people-ops for the local list.
+- If you must work on a holiday (for example, on-call), you receive a day of
+  time off in lieu within 60 days.
+- The production deploy freeze runs from December 20 to January 3.

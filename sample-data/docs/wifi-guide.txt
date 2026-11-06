@@ -1,0 +1,31 @@
+WIFI GUIDE
+==========
+
+Networks
+--------
+AcmeCorp      Employee network. Sign in with your company username and password (802.1X).
+AcmeGuest     Visitors only. The access code changes every Monday and is available at reception.
+AcmeIoT       Printers and devices. Registered devices only.
+
+Connecting to AcmeCorp
+----------------------
+1. Select "AcmeCorp" from the Wi-Fi list.
+2. Username: your full email address.
+3. Password: your company password. Accept the certificate issued by "Acme Root CA".
+4. Your device connects automatically in the future.
+
+Wifi password policy
+--------------------
+- There is no shared password for AcmeCorp. Never ask a colleague for one.
+- Guest codes expire after 7 days. Do not give the guest code to anyone who is not a visitor.
+- Do not connect personal devices to AcmeCorp. Personal phones may use AcmeGuest.
+- Do not run your own access point or hotspot in the office.
+
+Speeds and limits
+-----------------
+AcmeCorp supports Wi-Fi 6 (5 GHz). Guest network speed is limited to 25 Mbps per device.
+
+Problems?
+---------
+Forget the network, reconnect, and try again. If it still fails, post in #help-it
+with your device model and the room you are in.

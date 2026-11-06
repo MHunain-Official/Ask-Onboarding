@@ -1,0 +1,64 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: askonboarding
+    ports:
+      # Host 5432 is often already taken; use 55432 for local tools/tests.
+      - "55432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d askonboarding"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app@db:5432/askonboarding
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+      # Read-only: the seed copies these bytes into `uploads` via the same
+      # `store_file()` an upload uses; the backend never writes here.
+      - ./sample-data:/app/sample-data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    # Run migrations (and the demo seed, if enabled) before serving traffic.
+    command: >
+      sh -c "alembic upgrade head &&
+             if [ \"$$SEED_ON_START\" = \"true\" ]; then python -m app.seed; fi &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app@db:5432/askonboarding
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python -m app.ingestion.worker
+
+  frontend:
+    build: ./frontend
+    env_file: .env
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  uploads:

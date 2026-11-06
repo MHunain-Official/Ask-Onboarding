@@ -1,0 +1,125 @@
+# Production overrides. Use together with the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Requires Docker Compose v2.24+ (the `!reset` tag removes published ports
+# that the base file declares for local development).
+#
+# Required in `.env` on the server (chmod 600, never in git):
+#   DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, SECRET_KEY, LLM_API_KEY,
+#   EMBEDDING_API_KEY  (see `.env.example`)
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-hardening: &hardening
+  restart: unless-stopped
+  logging: *default-logging
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  db:
+    restart: unless-stopped
+    logging: *default-logging
+    # The database is only reachable on the compose network in production.
+    ports: !reset []
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: askonboarding
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  backend:
+    <<: *hardening
+    ports: !reset []
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/askonboarding
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      # Migrations (and the optional seed) run before uvicorn starts.
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  worker:
+    <<: *hardening
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/askonboarding
+    # Start only after the backend is healthy, i.e. after migrations ran.
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    # No HTTP port, so no healthcheck. The worker reclaims stuck documents
+    # on start, so a restart by `unless-stopped` is safe.
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  frontend:
+    <<: *hardening
+    ports: !reset []
+    environment:
+      BACKEND_URL: http://backend:8000
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/login').then(r => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live here; losing this volume only costs a re-issue.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:

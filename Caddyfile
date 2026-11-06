@@ -1,0 +1,45 @@
+# Caddy terminates TLS (automatic Let's Encrypt for $DOMAIN) and routes:
+#   /api/*, /health  -> FastAPI directly (so SSE is never buffered by Next.js)
+#   everything else  -> Next.js
+# Both are reached over the compose network; neither port is published.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Next.js emits inline bootstrap scripts, so 'unsafe-inline' is needed
+		# for script-src until nonces are wired in. Known limitation (SECURITY.md).
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+
+	# Optional: the demo login has no passwords. For a public URL, uncomment
+	# this and generate a hash with `caddy hash-password`.
+	# basic_auth {
+	# 	demo <paste-hash-here>
+	# }
+
+	@backend path /api/* /health
+	handle @backend {
+		# flush_interval -1 = send each SSE chunk immediately (AGENTS.md §5.12 #11).
+		reverse_proxy backend:8000 {
+			flush_interval -1
+			transport http {
+				# Longer than LLM_TIMEOUT_SECONDS so a slow stream is not cut by the proxy.
+				response_header_timeout 120s
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

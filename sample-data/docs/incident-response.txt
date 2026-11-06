@@ -1,0 +1,31 @@
+INCIDENT RESPONSE PROCEDURE
+===========================
+
+Severity levels
+---------------
+SEV1  Customer-facing outage or confirmed data breach.
+SEV2  Major feature degraded for many customers.
+SEV3  Minor issue with a workaround.
+
+Roles
+-----
+Incident Commander (IC)  Runs the response, makes decisions, does not debug.
+Communications Lead      Posts updates every 30 minutes for SEV1 and every 60 minutes for SEV2.
+Scribe                   Records the timeline in the incident channel.
+
+Steps
+-----
+1. Declare the incident in Slack with: /incident declare sev1 "short title"
+2. The bot creates the channel inc-YYYYMMDD-title and pages the IC.
+3. Post the status page update at https://status.acme-onboarding.example.
+4. Mitigate. Roll back first if a recent deploy is the likely cause.
+5. After resolution, schedule a blameless post-mortem within 5 business days.
+
+Data breach
+-----------
+If personal data may have been exposed, notify security@acme-onboarding.example
+immediately. Legal must decide on customer notification within 72 hours.
+
+Post-mortem template
+--------------------
+Summary, impact, timeline, root cause, what went well, what went badly, action items with owners.

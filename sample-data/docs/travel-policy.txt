@@ -1,0 +1,34 @@
+TRAVEL POLICY
+=============
+
+Booking
+-------
+Book flights and hotels through the travel portal at https://travel.acme-onboarding.example.
+Book flights at least 14 days ahead where possible.
+
+Flights
+-------
+- Economy class for flights under 6 hours.
+- Premium economy is allowed for flights of 6 hours or more with manager approval.
+- Choose the lowest logical fare. Refundable fares are only needed if plans may change.
+
+Hotels
+------
+- Up to $220 per night in major cities (New York, London, San Francisco) and $160 elsewhere.
+- Stay in a hotel from the approved list when one is available.
+
+Ground transport
+----------------
+Use public transport or rideshare. Rental cars need approval, and you must decline the optional insurance because the company policy covers it.
+
+Per diem
+--------
+Meals while travelling are reimbursed up to $75 per day. See Expense Reports.
+
+Emergencies
+-----------
+Call the travel assistance line at +1-555-0166 (24/7). Tell your manager as soon as you can.
+
+Personal days
+-------------
+You can add personal days to a trip, but you pay for the extra hotel nights and flight differences.
