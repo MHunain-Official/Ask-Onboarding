@@ -133,8 +133,9 @@ Stated plainly so nobody has to find them in review:
 
 - **Demo auth.** Passwordless login by email. Never expose the demo users on the open internet without the Caddy `basic_auth` block or real auth.
 - **Silent fake fallback.** Empty API keys switch to `FakeLlm`/`FakeEmbedder` with only a log warning. No startup check refuses to run in production without keys.
-- **Eval is fake-embedder only.** No live-model quality, cost or latency numbers; no LLM judge; commit hash missing because the repo has no commits yet.
+- **Eval is FakeEmbedder only so far.** Retrieval hit-rate/MRR numbers in `docs/eval.md` are real for that harness; live OpenRouter quality/cost numbers and the LLM judge were not run in this environment.
 - **`MIN_SIMILARITY=0.30` is untuned on real embeddings.**
+- **Embeddings:** preferred path is OpenAI direct. If OpenAI returns 429/no credits, point `EMBEDDING_BASE_URL` / `EMBEDDING_API_KEY` / `EMBEDDING_MODEL` at OpenRouter (documented in `.env.example`) — the `Embedder` interface already supports a custom base URL.
 - **English-only full-text search** (`to_tsvector('english', ...)`).
 - **Scanned/image-only PDFs are rejected** (no OCR). PDF page limit is `MAX_PDF_PAGES`.
 - **Single worker, no retry queue UI.** Scaling is "start more worker containers"; untested.
