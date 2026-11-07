@@ -19,6 +19,7 @@ import type {
   LlmCallSummary,
   Ticket,
   TicketCreateRequest,
+  TicketStatus,
   User,
 } from "@/lib/types";
 
@@ -68,7 +69,7 @@ async function errorFromResponse(response: Response): Promise<ApiError> {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   json?: unknown;
   signal?: AbortSignal;
   // The login call itself must not bounce to /login on 401.
@@ -201,6 +202,13 @@ export async function listTickets(): Promise<Ticket[]> {
 
 export function createTicket(payload: TicketCreateRequest): Promise<Ticket> {
   return request<Ticket>("/api/tickets", { method: "POST", json: payload });
+}
+
+export function updateTicketStatus(ticketId: string, status: TicketStatus): Promise<Ticket> {
+  return request<Ticket>(`/api/tickets/${ticketId}`, {
+    method: "PATCH",
+    json: { status },
+  });
 }
 
 // --- Admin ---

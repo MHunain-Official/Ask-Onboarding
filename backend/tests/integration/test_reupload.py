@@ -108,8 +108,8 @@ def test_failed_reupload_keeps_old_chunks_active(
     assert remaining_chunk_ids == original_chunk_ids
 
 
-def test_identical_content_reupload_is_a_noop(make_client, demo_user: User) -> None:
-    client = make_client(demo_user)
+def test_identical_content_reupload_is_a_noop(make_client, manager_user: User) -> None:
+    client = make_client(manager_user)
 
     first = client.post(
         "/api/documents",

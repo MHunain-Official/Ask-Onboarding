@@ -112,6 +112,11 @@ export default function ChatPage() {
                   onOpenCitation={setOpenCitation}
                   onRetry={chat.retry}
                   onRegenerate={chat.regenerate}
+                  onExplainSimpler={
+                    item.role === "assistant" && item.status === "ok"
+                      ? () => chat.send("Explain in easier wording")
+                      : undefined
+                  }
                 />
               ))
             )}

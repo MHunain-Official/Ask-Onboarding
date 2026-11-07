@@ -25,11 +25,31 @@ from app.ingestion.parsers import parse_by_filename
 from app.ingestion.storage import CONTENT_TYPES, store_file
 from app.models import AccessLevel, Document, DocumentChunk, DocumentStatus, User, UserRole
 from app.schemas import ChunkPublic, DocumentContentResponse, DocumentListResponse, DocumentPublic
-from app.security import allowed_access_levels, require_csrf_header, require_user
+from app.security import (
+    allowed_access_levels,
+    can_manage_documents,
+    require_csrf_header,
+    require_user,
+)
 from app.security_hardening import require_upload_rate_limit
 from app.services.audit_service import record_audit_event
 
 router = APIRouter(prefix="/api", tags=["documents"])
+
+
+def _assert_can_set_access_level(user: User, access_level: AccessLevel) -> None:
+    """Employees never set ACL. Managers may set all/managers. Admins set any."""
+    if user.role == UserRole.ADMIN:
+        return
+    if user.role == UserRole.MANAGER and access_level in (
+        AccessLevel.ALL,
+        AccessLevel.MANAGERS,
+    ):
+        return
+    raise HTTPException(
+        status.HTTP_403_FORBIDDEN,
+        "You cannot set that document access level",
+    )
 
 
 @router.post(
@@ -49,12 +69,14 @@ async def upload_document(
     case-insensitively: identical content is a no-op, changed content bumps
     the version and requeues it — the old chunks keep answering questions
     until the worker's atomic swap replaces them (§5.1)."""
+    if not can_manage_documents(user):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Only managers and admins may upload or replace documents",
+        )
     if not file.filename:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Missing filename")
-    if access_level == AccessLevel.MANAGERS and user.role == UserRole.EMPLOYEE:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Only managers or admins may mark a document manager-only"
-        )
+    _assert_can_set_access_level(user, access_level)
 
     raw_bytes = await file.read()
     settings = get_settings()
@@ -70,19 +92,15 @@ async def upload_document(
     existing = (
         db.query(Document).filter(func.lower(Document.filename) == display_filename.lower()).first()
     )
-    # Symmetric with the check above: an employee may not create a
-    # manager-only document, so an employee must not be able to overwrite
-    # or downgrade one either by re-uploading over the same filename —
-    # otherwise the `access_level == MANAGERS` guard above would be
-    # trivially bypassed (AGENTS.md §5.7: this check is in the only place
-    # that writes `documents.access_level`, never re-derived elsewhere).
-    existing_is_managers_only = (
-        existing is not None and existing.access_level == AccessLevel.MANAGERS
-    )
-    if existing_is_managers_only and user.role == UserRole.EMPLOYEE:
+    # Managers must not overwrite admin-only docs; employees never get here.
+    if (
+        existing is not None
+        and existing.access_level == AccessLevel.ADMINS
+        and user.role != UserRole.ADMIN
+    ):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            "Only managers or admins may replace a manager-only document",
+            "Only admins may replace an admin-only document",
         )
     if existing is not None and existing.content_hash == content_hash:
         return existing  # identical re-upload: no-op (§5.1)
@@ -169,7 +187,17 @@ def delete_document(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ) -> None:
+    if not can_manage_documents(user):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Only managers and admins may delete documents",
+        )
     document = _get_visible_document(db, document_id, user)
+    if document.access_level == AccessLevel.ADMINS and user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Only admins may delete an admin-only document",
+        )
     filename = document.filename
     Path(document.storage_path).unlink(missing_ok=True)
     db.delete(document)

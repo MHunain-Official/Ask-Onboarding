@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, getChunk, getDocumentContent } from "@/lib/api";
-import { findSnippetOffsets } from "@/lib/citations";
+import { resolveHighlightRange } from "@/lib/citations";
 import type { Chunk, Citation, DocumentContent } from "@/lib/types";
 
 type LoadState<T> =
   | { kind: "loading" }
-  | { kind: "gone" } // 404: the source was updated or removed (§5.12 #20)
+  | { kind: "gone" }
   | { kind: "error" }
   | { kind: "ready"; value: T };
 
@@ -77,7 +77,7 @@ function DrawerBody({ citation }: { citation: Citation }) {
           <span className="truncate">{citation.filename}</span>
         </SheetTitle>
         <SheetDescription>
-          Source [{citation.n}]{where ? ` · ${where}` : ""}
+          Source [{citation.n}]{where ? ` · ${where}` : ""} · cited passage highlighted
         </SheetDescription>
       </SheetHeader>
 
@@ -87,14 +87,14 @@ function DrawerBody({ citation }: { citation: Citation }) {
         className="min-h-0 flex-1 gap-0"
       >
         <TabsList variant="line" className="px-4 pt-2">
-          <TabsTrigger value="passage">Passage</TabsTrigger>
+          <TabsTrigger value="passage">Cited passage</TabsTrigger>
           <TabsTrigger value="document">Full document</TabsTrigger>
         </TabsList>
         <TabsContent value="passage" className="overflow-y-auto p-4">
-          <PassagePanel state={chunk} snippet={citation.snippet} />
+          <PassagePanel state={chunk} citation={citation} />
         </TabsContent>
         <TabsContent value="document" className="overflow-y-auto p-4">
-          <DocumentPanel state={document} />
+          <DocumentPanel state={document} citation={citation} />
         </TabsContent>
       </Tabs>
     </>
@@ -107,36 +107,57 @@ function GoneNotice() {
   );
 }
 
-function PassagePanel({ state, snippet }: { state: LoadState<Chunk>; snippet: string }) {
+function PassagePanel({ state, citation }: { state: LoadState<Chunk>; citation: Citation }) {
   if (state.kind === "loading") return <Skeleton lines={6} />;
   if (state.kind === "gone") return <GoneNotice />;
   if (state.kind === "error") return <ErrorBanner message="We couldn't load this passage." />;
-  const offsets = findSnippetOffsets(state.value.text, snippet);
+  const offsets = resolveHighlightRange(state.value.text, {
+    snippet: citation.snippet,
+    preferSnippet: true,
+  });
   return (
-    <HighlightedText
-      text={state.value.text}
-      start={offsets?.start ?? 0}
-      end={offsets?.end ?? state.value.text.length}
-    />
+    <div className="grid gap-3">
+      <p className="text-xs font-medium tracking-wide text-ring uppercase">Exact passage used</p>
+      <HighlightedText
+        text={state.value.text}
+        start={offsets?.start ?? 0}
+        end={offsets?.end ?? state.value.text.length}
+      />
+    </div>
   );
 }
 
-function DocumentPanel({ state }: { state: LoadState<DocumentContent> | null }) {
+function DocumentPanel({
+  state,
+  citation,
+}: {
+  state: LoadState<DocumentContent> | null;
+  citation: Citation;
+}) {
   if (state === null || state.kind === "loading") return <Skeleton lines={10} />;
   if (state.kind === "gone") return <GoneNotice />;
   if (state.kind === "error") return <ErrorBanner message="We couldn't load the document." />;
   const { value } = state;
+  const offsets = resolveHighlightRange(value.text, {
+    snippet: citation.snippet,
+    charStart: value.highlight_char_start ?? citation.char_start,
+    charEnd: value.highlight_char_end ?? citation.char_end,
+  });
   return (
     <div className="grid gap-2">
       {value.highlight_page ? (
         <p className="text-xs text-muted-foreground">
           The cited passage is on page {value.highlight_page} (extracted text shown).
         </p>
-      ) : null}
+      ) : (
+        <p className="text-xs font-medium tracking-wide text-ring uppercase">
+          Highlighted region from this answer
+        </p>
+      )}
       <HighlightedText
         text={value.text}
-        start={value.highlight_char_start}
-        end={value.highlight_char_end}
+        start={offsets?.start ?? null}
+        end={offsets?.end ?? null}
       />
     </div>
   );

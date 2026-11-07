@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 from app.llm.base import ChatMessage
 from app.models import Conversation, Message, MessageRole, User
 
-MAX_HISTORY_TURNS = 4
+# Keep enough turns so "what did we talk about an hour ago" still works in
+# a busy chat without blowing the context window (paired with token budget).
+MAX_HISTORY_TURNS = 12
 
 
 def load_or_create_conversation(

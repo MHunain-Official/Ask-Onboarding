@@ -26,6 +26,8 @@ class ScoredChunk:
     page_number: int | None
     access_level: AccessLevel
     score: float  # cosine similarity in [-1, 1]; higher is better
+    char_start: int
+    char_end: int
 
 
 def vector_search(
@@ -62,6 +64,8 @@ def vector_search(
             page_number=chunk.page_number,
             access_level=chunk.access_level,
             score=1.0 - distance_value,
+            char_start=chunk.char_start,
+            char_end=chunk.char_end,
         )
         for chunk, distance_value in rows
     ]

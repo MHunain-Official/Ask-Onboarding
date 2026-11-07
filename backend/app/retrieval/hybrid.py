@@ -31,6 +31,8 @@ class RetrievedChunk:
     heading: str | None
     text: str
     score: float
+    char_start: int
+    char_end: int
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,8 @@ def retrieve(
             heading=chunk_data[chunk_id].heading,
             text=chunk_data[chunk_id].text,
             score=scores_by_id[chunk_id],
+            char_start=chunk_data[chunk_id].char_start,
+            char_end=chunk_data[chunk_id].char_end,
         )
         for chunk_id in top_ids
     ]

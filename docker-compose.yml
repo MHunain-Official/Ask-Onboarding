@@ -50,7 +50,11 @@ services:
     command: python -m app.ingestion.worker
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Must match the compose service name; baked into Next rewrites at build.
+        BACKEND_URL: http://backend:8000
     env_file: .env
     environment:
       BACKEND_URL: http://backend:8000

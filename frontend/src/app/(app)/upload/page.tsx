@@ -20,11 +20,11 @@ const POLL_INTERVAL_MS = 2000;
 
 export default function UploadPage() {
   const { user } = useAuth();
-  const canRestrict = user.role !== "employee";
+  const canManage = user.role === "manager" || user.role === "admin";
   const [documents, setDocuments] = useState<DocumentItem[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [tasks, setTasks] = useState<UploadTask[]>([]);
-  const [managersOnly, setManagersOnly] = useState(false);
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>("all");
   const [viewing, setViewing] = useState<DocumentItem | null>(null);
   const nextTaskId = useRef(0);
 
@@ -39,7 +39,6 @@ export default function UploadPage() {
 
   useEffect(refresh, [refresh]);
 
-  // Poll every 2 s while anything is still being indexed (§7).
   const isBusy =
     documents?.some((doc) => doc.status === "queued" || doc.status === "processing") ?? false;
   useEffect(() => {
@@ -62,12 +61,10 @@ export default function UploadPage() {
       return;
     }
     setTasks((current) => [...current, { id, name: file.name, progress: 0, state: "uploading" }]);
-    const accessLevel: AccessLevel = canRestrict && managersOnly ? "managers" : "all";
     try {
       const saved = await uploadDocument(file, accessLevel, (progress) =>
         updateTask(id, { progress }),
       );
-      // An identical re-upload returns the existing row untouched (§5.1 "no changes").
       const before = documents?.find((doc) => doc.id === saved.id);
       const unchanged = before !== undefined && before.version === saved.version;
       updateTask(id, {
@@ -83,11 +80,14 @@ export default function UploadPage() {
   }
 
   function handleFiles(files: File[]) {
+    if (!canManage) {
+      toast.error("Only managers and admins can upload documents.");
+      return;
+    }
     files.forEach((file) => void uploadOne(file));
   }
 
   function handleReupload(document: DocumentItem, file: File) {
-    // The filename is the document's identity, so keep the original name (§5.1).
     void uploadOne(new File([file], document.filename, { type: file.type }));
   }
 
@@ -104,26 +104,34 @@ export default function UploadPage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-5 p-4 sm:p-6">
       <header>
-        <h1 className="font-heading text-2xl font-semibold">Documents</h1>
+        <h1 className="font-heading text-2xl font-semibold">
+          {canManage ? "Document library" : "Company documents"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Upload the files the assistant is allowed to answer from. Uploading a changed file with
-          the same name replaces the old version.
+          {canManage
+            ? "Upload the files the assistant may answer from. Choose who can read each file. Re-uploading the same filename replaces the old version after indexing."
+            : "Browse documents you are allowed to read. Uploads and deletions are handled by managers and admins."}
         </p>
       </header>
 
-      <UploadDropzone onFiles={handleFiles} />
-      {canRestrict ? (
-        <label className="flex w-fit items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={managersOnly}
-            onChange={(event) => setManagersOnly(event.target.checked)}
-            className="size-4 accent-[var(--ring)]"
-          />
-          Make new uploads visible to managers only
-        </label>
+      {canManage ? (
+        <>
+          <UploadDropzone onFiles={handleFiles} />
+          <label className="grid w-fit gap-1 text-sm">
+            <span className="text-muted-foreground">Access level for new uploads</span>
+            <select
+              value={accessLevel}
+              onChange={(event) => setAccessLevel(event.target.value as AccessLevel)}
+              className="rounded-md border bg-background px-3 py-2"
+            >
+              <option value="all">Everyone (employees)</option>
+              <option value="managers">Managers and admins</option>
+              {user.role === "admin" ? <option value="admins">Admins only</option> : null}
+            </select>
+          </label>
+          <UploadProgressList tasks={tasks} />
+        </>
       ) : null}
-      <UploadProgressList tasks={tasks} />
 
       {loadFailed ? (
         <ErrorBanner message="We couldn't load the document list." onRetry={refresh} />
@@ -133,12 +141,17 @@ export default function UploadPage() {
         <EmptyState
           icon={FileText}
           title="No documents yet"
-          description="Drop a PDF, Markdown or text file above to get started. Once it is ready, you can ask questions about it."
+          description={
+            canManage
+              ? "Drop a PDF, Markdown or text file above to get started."
+              : "Ask a manager to upload onboarding docs, then come back here to browse them."
+          }
         />
       ) : null}
       {documents && documents.length > 0 ? (
         <DocumentTable
           documents={documents}
+          canManage={canManage}
           onView={setViewing}
           onDelete={handleDelete}
           onReupload={handleReupload}

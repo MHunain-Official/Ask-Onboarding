@@ -54,8 +54,8 @@ def test_manager_sees_managers_only_document_in_list(make_client, demo_user: Use
     assert "salary.md" in filenames
 
 
-def test_delete_document_removes_it_from_the_list(make_client, demo_user: User) -> None:
-    client = make_client(demo_user)
+def test_delete_document_removes_it_from_the_list(make_client, manager_user: User) -> None:
+    client = make_client(manager_user)
     upload = client.post(
         "/api/documents",
         files={"file": ("notes.md", io.BytesIO(b"# Notes"), "text/markdown")},
@@ -70,8 +70,8 @@ def test_delete_document_removes_it_from_the_list(make_client, demo_user: User) 
     assert all(item["id"] != document_id for item in listing["items"])
 
 
-def test_get_document_content_returns_highlighted_passage(make_client, db, demo_user: User) -> None:
-    client = make_client(demo_user)
+def test_get_document_content_returns_highlighted_passage(make_client, db, manager_user: User) -> None:
+    client = make_client(manager_user)
     upload = client.post(
         "/api/documents",
         files={"file": ("wifi.md", io.BytesIO(MARKDOWN.encode()), "text/markdown")},

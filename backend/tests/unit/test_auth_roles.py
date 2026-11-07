@@ -18,7 +18,7 @@ def _make_user(role: UserRole) -> User:
     [
         (UserRole.EMPLOYEE, [AccessLevel.ALL]),
         (UserRole.MANAGER, [AccessLevel.ALL, AccessLevel.MANAGERS]),
-        (UserRole.ADMIN, [AccessLevel.ALL, AccessLevel.MANAGERS]),
+        (UserRole.ADMIN, [AccessLevel.ALL, AccessLevel.MANAGERS, AccessLevel.ADMINS]),
     ],
 )
 def test_allowed_access_levels_by_role(role: UserRole, expected: list[AccessLevel]) -> None:
@@ -27,7 +27,8 @@ def test_allowed_access_levels_by_role(role: UserRole, expected: list[AccessLeve
     assert allowed_access_levels(user) == expected
 
 
-def test_employee_never_sees_managers_level() -> None:
+def test_employee_never_sees_managers_or_admins_level() -> None:
     user = _make_user(UserRole.EMPLOYEE)
 
     assert AccessLevel.MANAGERS not in allowed_access_levels(user)
+    assert AccessLevel.ADMINS not in allowed_access_levels(user)

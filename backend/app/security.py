@@ -97,11 +97,25 @@ def require_csrf_header(request: Request) -> None:
 def allowed_access_levels(user: User) -> list[AccessLevel]:
     """Which document access levels this user may read.
 
-    Employees only ever see `all`. Managers and admins additionally see
-    `managers`. This is the single source of truth used by every retrieval
-    query and document endpoint (AGENTS.md §5.7) — never re-implemented
-    elsewhere.
+    Employees: `all` only.
+    Managers: `all` + `managers`.
+    Admins: `all` + `managers` + `admins`.
+
+    Single source of truth for every retrieval query and document endpoint
+    (AGENTS.md §5.7) — never re-implemented elsewhere.
     """
-    if user.role in (UserRole.MANAGER, UserRole.ADMIN):
+    if user.role == UserRole.ADMIN:
+        return [AccessLevel.ALL, AccessLevel.MANAGERS, AccessLevel.ADMINS]
+    if user.role == UserRole.MANAGER:
         return [AccessLevel.ALL, AccessLevel.MANAGERS]
     return [AccessLevel.ALL]
+
+
+def can_manage_documents(user: User) -> bool:
+    """Only managers and admins may upload, re-upload, retry, or delete docs."""
+    return user.role in (UserRole.MANAGER, UserRole.ADMIN)
+
+
+def can_manage_tickets(user: User) -> bool:
+    """Managers and admins triage help-desk tickets for everyone."""
+    return user.role in (UserRole.MANAGER, UserRole.ADMIN)

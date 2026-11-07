@@ -19,6 +19,7 @@ interface ChatMessageProps {
   onOpenCitation: (citation: Citation) => void;
   onRetry: (assistantId: string) => void;
   onRegenerate: (assistantId: string) => void;
+  onExplainSimpler?: () => void;
 }
 
 export function ChatMessage({
@@ -27,6 +28,7 @@ export function ChatMessage({
   onOpenCitation,
   onRetry,
   onRegenerate,
+  onExplainSimpler,
 }: ChatMessageProps) {
   if (item.role === "user") {
     return (
@@ -37,7 +39,11 @@ export function ChatMessage({
       </div>
     );
   }
-  return <AssistantMessage {...{ item, conversationId, onOpenCitation, onRetry, onRegenerate }} />;
+  return (
+    <AssistantMessage
+      {...{ item, conversationId, onOpenCitation, onRetry, onRegenerate, onExplainSimpler }}
+    />
+  );
 }
 
 function AssistantMessage({
@@ -46,6 +52,7 @@ function AssistantMessage({
   onOpenCitation,
   onRetry,
   onRegenerate,
+  onExplainSimpler,
 }: ChatMessageProps) {
   const streaming = item.status === "streaming";
   const hasText = item.content.length > 0;
@@ -109,7 +116,11 @@ function AssistantMessage({
       ) : null}
 
       {!streaming && hasText ? (
-        <MessageActions text={item.content} onRegenerate={() => onRegenerate(item.id)} />
+        <MessageActions
+          text={item.content}
+          onRegenerate={() => onRegenerate(item.id)}
+          onExplainSimpler={onExplainSimpler}
+        />
       ) : null}
     </article>
   );
@@ -148,7 +159,15 @@ function SourceList({
   );
 }
 
-function MessageActions({ text, onRegenerate }: { text: string; onRegenerate: () => void }) {
+function MessageActions({
+  text,
+  onRegenerate,
+  onExplainSimpler,
+}: {
+  text: string;
+  onRegenerate: () => void;
+  onExplainSimpler?: () => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -158,11 +177,16 @@ function MessageActions({ text, onRegenerate }: { text: string; onRegenerate: ()
   }
 
   return (
-    <div className="flex gap-1">
+    <div className="flex flex-wrap gap-1">
       <Button variant="ghost" size="sm" onClick={() => void copy()}>
         {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         {copied ? "Copied" : "Copy"}
       </Button>
+      {onExplainSimpler ? (
+        <Button variant="ghost" size="sm" onClick={onExplainSimpler}>
+          Explain simpler
+        </Button>
+      ) : null}
       <Button variant="ghost" size="sm" onClick={onRegenerate}>
         <RotateCcw aria-hidden="true" />
         Regenerate

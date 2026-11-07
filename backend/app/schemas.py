@@ -129,6 +129,10 @@ class CitationItem(BaseModel):
     page: int | None = None
     heading: str | None = None
     snippet: str
+    # Offsets of this chunk in the full document text — used by the source
+    # drawer to highlight the exact passage, not a fuzzy snippet match.
+    char_start: int | None = None
+    char_end: int | None = None
 
 
 class TicketOfferPayload(BaseModel):
@@ -180,11 +184,16 @@ class TicketPublic(BaseModel):
     title: str
     question: str
     user_id: uuid.UUID
+    user_name: str | None = None
     status: TicketStatus
     conversation_id: uuid.UUID | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TicketStatusUpdateRequest(BaseModel):
+    status: TicketStatus
 
 
 class TicketListResponse(BaseModel):

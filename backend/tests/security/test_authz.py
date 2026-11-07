@@ -124,11 +124,11 @@ def test_chat_rate_limit_returns_429_after_the_per_minute_cap_is_exceeded(
 
 
 def test_upload_rate_limit_returns_429_after_the_per_minute_cap_is_exceeded(
-    make_client: Callable[..., TestClient], demo_user: User
+    make_client: Callable[..., TestClient], manager_user: User
 ) -> None:
     low_limit_settings = get_settings().model_copy(update={"rate_limit_upload_per_minute": 1})
     app.dependency_overrides[get_settings] = lambda: low_limit_settings
-    client = make_client(demo_user)
+    client = make_client(manager_user)
 
     first = client.post(
         "/api/documents",

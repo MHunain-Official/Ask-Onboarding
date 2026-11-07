@@ -17,14 +17,17 @@ export function HighlightedText({ text, start, end }: HighlightedTextProps) {
   const { before, highlighted, after } = splitForHighlight(text, start, end);
 
   useEffect(() => {
-    markRef.current?.scrollIntoView({ block: "center" });
+    markRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [text, start, end]);
 
   return (
     <p className="font-serif text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
       {before}
       {highlighted ? (
-        <mark ref={markRef} className="rounded-sm bg-highlight px-0.5 text-highlight-foreground">
+        <mark
+          ref={markRef}
+          className="rounded-sm bg-amber-200/90 px-0.5 font-medium text-ink shadow-[inset_0_-2px_0_0_rgba(180,83,9,0.35)] dark:bg-amber-400/30 dark:text-amber-50"
+        >
           {highlighted}
         </mark>
       ) : null}

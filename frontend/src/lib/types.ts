@@ -2,9 +2,9 @@
 // AGENTS.md §5.4 / §6. Keep this file in sync when the backend changes.
 
 export type UserRole = "employee" | "manager" | "admin";
-export type AccessLevel = "all" | "managers";
+export type AccessLevel = "all" | "managers" | "admins";
 export type DocumentStatus = "queued" | "processing" | "ready" | "failed";
-export type TicketStatus = "open" | "closed";
+export type TicketStatus = "open" | "in_review" | "in_progress" | "answered" | "closed";
 
 export interface User {
   id: string;
@@ -54,6 +54,9 @@ export interface Citation {
   page: number | null;
   heading: string | null;
   snippet: string;
+  /** Offsets of this chunk in the full document text (exact passage). */
+  char_start?: number | null;
+  char_end?: number | null;
 }
 
 export interface TicketOffer {

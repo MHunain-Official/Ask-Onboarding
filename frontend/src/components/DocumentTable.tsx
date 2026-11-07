@@ -27,9 +27,16 @@ import type { DocumentItem } from "@/lib/types";
 
 interface DocumentTableProps {
   documents: DocumentItem[];
+  canManage: boolean;
   onView: (document: DocumentItem) => void;
   onDelete: (document: DocumentItem) => Promise<void>;
   onReupload: (document: DocumentItem, file: File) => void;
+}
+
+function accessLabel(level: DocumentItem["access_level"]): string {
+  if (level === "admins") return "Admins only";
+  if (level === "managers") return "Managers only";
+  return "Everyone";
 }
 
 function fileKind(contentType: string, filename: string): string {
@@ -37,7 +44,13 @@ function fileKind(contentType: string, filename: string): string {
   return filename.toLowerCase().endsWith(".md") ? "Markdown" : "Text";
 }
 
-export function DocumentTable({ documents, onView, onDelete, onReupload }: DocumentTableProps) {
+export function DocumentTable({
+  documents,
+  canManage,
+  onView,
+  onDelete,
+  onReupload,
+}: DocumentTableProps) {
   const [toDelete, setToDelete] = useState<DocumentItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const reuploadTarget = useRef<DocumentItem | null>(null);
@@ -95,8 +108,8 @@ export function DocumentTable({ documents, onView, onDelete, onReupload }: Docum
                 <TableCell>{fileKind(document.content_type, document.filename)}</TableCell>
                 <TableCell>v{document.version}</TableCell>
                 <TableCell>
-                  <Badge variant={document.access_level === "managers" ? "outline" : "secondary"}>
-                    {document.access_level === "managers" ? "Managers only" : "Everyone"}
+                  <Badge variant={document.access_level === "all" ? "secondary" : "outline"}>
+                    {accessLabel(document.access_level)}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -119,25 +132,29 @@ export function DocumentTable({ documents, onView, onDelete, onReupload }: Docum
                     >
                       <Eye aria-hidden="true" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Upload a new version of ${document.filename}`}
-                      onClick={() => {
-                        reuploadTarget.current = document;
-                        fileInput.current?.click();
-                      }}
-                    >
-                      <RefreshCw aria-hidden="true" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Delete ${document.filename}`}
-                      onClick={() => setToDelete(document)}
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Upload a new version of ${document.filename}`}
+                          onClick={() => {
+                            reuploadTarget.current = document;
+                            fileInput.current?.click();
+                          }}
+                        >
+                          <RefreshCw aria-hidden="true" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Delete ${document.filename}`}
+                          onClick={() => setToDelete(document)}
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </Button>
+                      </>
+                    ) : null}
                   </div>
                 </TableCell>
               </TableRow>

@@ -25,6 +25,8 @@ class KeywordScoredChunk:
     page_number: int | None
     access_level: AccessLevel
     score: float
+    char_start: int
+    char_end: int
 
 
 def keyword_search(
@@ -62,6 +64,8 @@ def keyword_search(
             page_number=chunk.page_number,
             access_level=chunk.access_level,
             score=float(rank_value),
+            char_start=chunk.char_start,
+            char_end=chunk.char_end,
         )
         for chunk, rank_value in rows
     ]

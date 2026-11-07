@@ -21,6 +21,8 @@ def build_sources(chunks: list[RetrievedChunk]) -> list[SourceForPrompt]:
             heading=chunk.heading,
             page=chunk.page,
             text=chunk.text,
+            char_start=chunk.char_start,
+            char_end=chunk.char_end,
         )
         for index, chunk in enumerate(chunks)
     ]

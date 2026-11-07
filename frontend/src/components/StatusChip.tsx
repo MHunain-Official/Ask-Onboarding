@@ -32,6 +32,9 @@ const CHIP_STYLES: Record<string, ChipStyle> = {
   ungrounded: { label: "Ungrounded", tone: "warning", icon: AlertCircle },
   partial: { label: "Partial", tone: "warning", icon: AlertCircle },
   open: { label: "Open", tone: "info", icon: Clock },
+  in_review: { label: "In review", tone: "warning", icon: Clock },
+  in_progress: { label: "In progress", tone: "info", icon: Loader2, spin: true },
+  answered: { label: "Answered", tone: "success", icon: CheckCircle2 },
   closed: { label: "Closed", tone: "neutral", icon: CheckCircle2 },
 };
 

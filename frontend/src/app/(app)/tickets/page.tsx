@@ -3,6 +3,7 @@
 import { Ticket as TicketIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/AuthProvider";
 import { EmptyState } from "@/components/EmptyState";
@@ -18,12 +19,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listTickets } from "@/lib/api";
+import { listTickets, updateTicketStatus } from "@/lib/api";
 import { formatDateTime, shortId } from "@/lib/format";
-import type { Ticket } from "@/lib/types";
+import type { Ticket, TicketStatus } from "@/lib/types";
+
+const STAFF_STATUSES: { value: TicketStatus; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "in_review", label: "In review" },
+  { value: "in_progress", label: "In progress" },
+  { value: "answered", label: "Answered" },
+  { value: "closed", label: "Closed" },
+];
 
 export default function TicketsPage() {
   const { user } = useAuth();
+  const canManage = user.role === "manager" || user.role === "admin";
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -36,14 +46,26 @@ export default function TicketsPage() {
 
   useEffect(load, [load]);
 
+  async function changeStatus(ticket: Ticket, status: TicketStatus) {
+    try {
+      const updated = await updateTicketStatus(ticket.id, status);
+      setTickets((current) =>
+        current?.map((row) => (row.id === updated.id ? updated : row)) ?? null,
+      );
+      toast.success(`Ticket marked ${status.replaceAll("_", " ")}`);
+    } catch {
+      toast.error("Couldn't update ticket status");
+    }
+  }
+
   return (
     <div className="mx-auto grid max-w-6xl gap-5 p-4 sm:p-6">
       <header>
         <h1 className="font-heading text-2xl font-semibold">Help-desk tickets</h1>
         <p className="text-sm text-muted-foreground">
-          {user.role === "admin"
-            ? "All tickets from every employee."
-            : "Tickets you asked the assistant to open."}
+          {canManage
+            ? "Triage every ticket. Update status so employees can see progress."
+            : "Tickets you asked the assistant to open, with live status from the help desk."}
         </p>
       </header>
 
@@ -84,7 +106,24 @@ export default function TicketsPage() {
                   </TableCell>
                   <TableCell>{ticket.user_name ?? shortId(ticket.user_id)}</TableCell>
                   <TableCell>
-                    <StatusChip status={ticket.status} />
+                    {canManage ? (
+                      <select
+                        aria-label={`Status for ${ticket.title}`}
+                        className="rounded-md border bg-background px-2 py-1 text-sm"
+                        value={ticket.status}
+                        onChange={(event) =>
+                          void changeStatus(ticket, event.target.value as TicketStatus)
+                        }
+                      >
+                        {STAFF_STATUSES.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <StatusChip status={ticket.status} />
+                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {formatDateTime(ticket.created_at)}

@@ -41,10 +41,14 @@ class UserRole(StrEnum):
 
 
 class AccessLevel(StrEnum):
-    """Who may read a document or chunk. `all` means every employee."""
+    """Who may read a document or chunk.
+
+    `all` = every employee · `managers` = managers+admins · `admins` = admins only.
+    """
 
     ALL = "all"
     MANAGERS = "managers"
+    ADMINS = "admins"
 
 
 class DocumentStatus(StrEnum):
@@ -64,9 +68,12 @@ class MessageRole(StrEnum):
 
 
 class TicketStatus(StrEnum):
-    """Lifecycle of a help-desk ticket."""
+    """Lifecycle of a help-desk ticket (staff update these; employees read them)."""
 
     OPEN = "open"
+    IN_REVIEW = "in_review"
+    IN_PROGRESS = "in_progress"
+    ANSWERED = "answered"
     CLOSED = "closed"
 
 
@@ -206,6 +213,7 @@ class Ticket(Base):
         ForeignKey("conversations.id"), default=None
     )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    user: Mapped["User"] = relationship()
 
 
 class LlmCall(Base):

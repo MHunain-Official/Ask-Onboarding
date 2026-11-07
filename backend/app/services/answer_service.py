@@ -22,6 +22,7 @@ from app.retrieval.hybrid import retrieve
 from app.schemas import ChatRequest
 from app.security import allowed_access_levels
 from app.security_hardening import matches_injection_pattern
+from app.services.abbreviations import expand_abbreviations
 from app.services.audit_service import record_audit_event
 from app.services.budget_service import check_budget
 from app.services.cache_hit_response import cache_hit_response
@@ -73,13 +74,23 @@ def stream_chat_answer(
         yield from _handle_small_talk(db, conversation, body.question, decision.message or "")
         return
 
+    history = load_history_messages(db, conversation.id)
+
+    if decision.action == "conversation_meta":
+        yield from _handle_conversation_meta(db, conversation, body.question, history)
+        return
+    if decision.action == "explain_simpler":
+        yield from _handle_explain_simpler(
+            db, conversation, body.question, history, llm_client, settings, cancel_check
+        )
+        return
+
     allowed_levels = allowed_access_levels(user)
     scope = cache_scope(allowed_levels)
     # History must be loaded *before* this turn's question is persisted
     # (§5.5 "history excludes old sources" and §5.10 cache safety): doing it
     # the other way round would make every question look like a follow-up
     # to itself, since it would already be the newest row in its own history.
-    history = load_history_messages(db, conversation.id)
     is_follow_up = len(history) > 0
     # The question is kept even if everything after this fails (§5.9 #1):
     # a Retry button on the frontend can resend it without retyping.
@@ -87,6 +98,8 @@ def stream_chat_answer(
     # §5.10 cache safety: an answer that depended on conversation history is
     # never cached and never served from the cache.
     cacheable = settings.cache_enabled and not is_follow_up
+    # Expand EMP/ACK/etc. for retrieval only — the stored question stays as typed.
+    retrieval_question = expand_abbreviations(body.question)
 
     if cacheable:
         cached = get_cached_answer(
@@ -108,7 +121,7 @@ def stream_chat_answer(
     result = retrieve(
         db=db,
         embedder=embedder,
-        question=body.question,
+        question=retrieval_question,
         allowed_levels=allowed_levels,
         top_k=settings.retrieval_top_k,
         candidates=settings.retrieval_candidates,
@@ -173,3 +186,97 @@ def _handle_small_talk(
     message = persist_message(db, conversation.id, MessageRole.ASSISTANT, reply)
     yield token_event(reply)
     yield done_event(str(message.id), "ok")
+
+
+def _handle_conversation_meta(
+    db: Session,
+    conversation: Conversation,
+    question: str,
+    history: list,
+) -> Generator[SseEvent, None, None]:
+    """Answer "what did we talk about?" from chat history — no retrieval/LLM."""
+    persist_message(db, conversation.id, MessageRole.USER, question)
+    if not history:
+        reply = (
+            "We haven't discussed anything in this chat yet. Ask a question about "
+            "the company documents and I'll help."
+        )
+    else:
+        lines = ["Here's what we've covered in this chat so far:"]
+        turn = 0
+        for message in history:
+            if message.role == "user":
+                turn += 1
+                lines.append(f"{turn}. You asked: {message.content[:240]}")
+            elif message.role == "assistant" and turn > 0:
+                preview = message.content.replace("\n", " ")[:180]
+                lines.append(f"   → {preview}{'…' if len(message.content) > 180 else ''}")
+        reply = "\n".join(lines)
+    saved = persist_message(db, conversation.id, MessageRole.ASSISTANT, reply)
+    yield token_event(reply)
+    yield done_event(str(saved.id), "ok")
+
+
+def _handle_explain_simpler(
+    db: Session,
+    conversation: Conversation,
+    question: str,
+    history: list,
+    llm_client: LlmClient,
+    settings: Settings,
+    cancel_check: Callable[[], bool] | None,
+) -> Generator[SseEvent, None, None]:
+    """Rewrite the last assistant answer in plain words without new retrieval."""
+    from app.llm.base import ChatMessage
+
+    persist_message(db, conversation.id, MessageRole.USER, question)
+    last_answer = next((m.content for m in reversed(history) if m.role == "assistant"), None)
+    if not last_answer:
+        reply = (
+            "There isn't a previous answer in this chat to simplify yet. "
+            "Ask a document question first."
+        )
+        saved = persist_message(db, conversation.id, MessageRole.ASSISTANT, reply)
+        yield token_event(reply)
+        yield done_event(str(saved.id), "ok")
+        return
+
+    from app.llm.base import StreamToken
+
+    messages = [
+        ChatMessage(
+            role="system",
+            content=(
+                "Rewrite the previous assistant answer in simpler, clearer language for a "
+                "new employee. Keep every fact, number, date, command and URL exactly the same. "
+                "Do not add new facts. Do not call tools. Keep citations like [1] if present."
+            ),
+        ),
+        ChatMessage(role="assistant", content=last_answer),
+        ChatMessage(role="user", content="Please explain that in easier wording."),
+    ]
+    collected: list[str] = []
+    try:
+        for event in llm_client.stream_chat(
+            messages=messages,
+            tools=[],
+            model=settings.llm_model,
+        ):
+            if cancel_check is not None and cancel_check():
+                break
+            if isinstance(event, StreamToken) and event.text:
+                collected.append(event.text)
+                yield token_event(event.text)
+    except Exception:
+        reply = (
+            "I couldn't simplify that right now. Here is the previous answer again:\n\n"
+            + last_answer
+        )
+        saved = persist_message(db, conversation.id, MessageRole.ASSISTANT, reply)
+        yield token_event(reply)
+        yield done_event(str(saved.id), "ok")
+        return
+
+    answer = "".join(collected).strip() or last_answer
+    saved = persist_message(db, conversation.id, MessageRole.ASSISTANT, answer)
+    yield done_event(str(saved.id), "ok")

@@ -27,7 +27,11 @@ def citation_items(numbers: set[int], sources: list[SourceForPrompt]) -> list[di
                 "filename": source.filename,
                 "page": source.page,
                 "heading": source.heading,
-                "snippet": source.text[:_SNIPPET_CHARS],
+                # Prefer a mid-chunk window around the most distinctive sentence
+                # start so the drawer highlight matches what the answer cited.
+                "snippet": _best_snippet(source.text, _SNIPPET_CHARS),
+                "char_start": source.char_start,
+                "char_end": source.char_end,
             }
         )
     return items
@@ -45,10 +49,26 @@ def passage_items(chunks: list[RetrievedChunk]) -> list[dict[str, object]]:
             "filename": chunk.filename,
             "page": chunk.page,
             "heading": chunk.heading,
-            "snippet": chunk.text[:_SNIPPET_CHARS],
+            "snippet": _best_snippet(chunk.text, _SNIPPET_CHARS),
+            "char_start": chunk.char_start,
+            "char_end": chunk.char_end,
         }
         for index, chunk in enumerate(chunks)
     ]
+
+
+def _best_snippet(text: str, max_chars: int) -> str:
+    """Pick a contiguous window that starts at a sentence boundary when possible."""
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    # Prefer starting after the first sentence if the chunk has a heading prepend.
+    for separator in (". ", "\n", "? ", "! "):
+        index = cleaned.find(separator)
+        if 0 < index < max_chars // 2:
+            start = index + len(separator)
+            return cleaned[start : start + max_chars].rstrip() + "…"
+    return cleaned[:max_chars].rstrip() + "…"
 
 
 def default_ticket_title(question: str) -> str:
