@@ -112,6 +112,28 @@ describe("parseChatEvent", () => {
     });
   });
 
+  it("parses retrieval-track breadcrumbs", () => {
+    expect(
+      parseChatEvent(
+        "trace",
+        JSON.stringify({
+          step: "retrieve",
+          status: "done",
+          title: "Searching documents",
+          detail: "hybrid · 3 passages",
+        }),
+      ),
+    ).toEqual({
+      event: "trace",
+      data: {
+        step: "retrieve",
+        status: "done",
+        title: "Searching documents",
+        detail: "hybrid · 3 passages",
+      },
+    });
+  });
+
   it("ignores unknown event names", () => {
     expect(parseChatEvent("surprise", "{}")).toBeNull();
   });

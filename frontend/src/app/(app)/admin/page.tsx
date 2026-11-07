@@ -6,21 +6,24 @@ import { useCallback, useEffect, useState } from "react";
 import { AuditEventsTable } from "@/components/admin/AuditEventsTable";
 import { LlmCallDrawer } from "@/components/admin/LlmCallDrawer";
 import { LlmCallTable } from "@/components/admin/LlmCallTable";
+import { ProjectDocsPanel } from "@/components/admin/ProjectDocsPanel";
 import { StatsTiles } from "@/components/admin/StatsTiles";
 import { useAuth } from "@/components/AuthProvider";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/Skeleton";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminStats, listAuditEvents, listLlmCalls } from "@/lib/api";
 import type { AdminStats, AuditEvent, LlmCallSummary } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const STATUS_FILTERS = ["", "ok", "no_answer", "error", "refused", "ungrounded", "partial"];
-// The backend filters by exact `user_id` (a UUID), not a name/email
-// substring (AGENTS.md §6) — validate client-side so a partially typed id
-// never turns into a 422 from the server instead of just "no results yet".
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type MainTab = "docs" | "overview";
+type OverviewSection = "stats" | "requests" | "audit";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -39,6 +42,36 @@ export default function AdminPage() {
 }
 
 function AdminDashboard() {
+  const [tab, setTab] = useState<MainTab>("docs");
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 space-y-4 border-b border-border/70 px-4 pt-5 pb-3 sm:px-6">
+        <PageHeader
+          title="Admin"
+          description="Browse project docs full-width, or open Overview for KPIs, requests, and audit."
+        />
+        <Tabs value={tab} onValueChange={(value) => setTab(value as MainTab)}>
+          <TabsList className="h-auto w-fit flex-wrap rounded-full p-1">
+            <TabsTrigger value="docs" className="rounded-full px-4">
+              Docs
+            </TabsTrigger>
+            <TabsTrigger value="overview" className="rounded-full px-4">
+              Overview
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {tab === "docs" ? <ProjectDocsPanel /> : <OverviewPanel />}
+      </div>
+    </div>
+  );
+}
+
+function OverviewPanel() {
+  const [section, setSection] = useState<OverviewSection>("stats");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsFailed, setStatsFailed] = useState(false);
 
@@ -49,28 +82,45 @@ function AdminDashboard() {
   }, []);
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-5 p-4 sm:p-6">
-      <header>
-        <h1 className="font-heading text-2xl font-semibold">Admin</h1>
-        <p className="text-sm text-muted-foreground">
-          Every answer request and sensitive action, recorded.
-        </p>
-      </header>
-      {statsFailed ? <ErrorBanner message="We couldn't load the summary tiles." /> : null}
-      {stats ? <StatsTiles stats={stats} /> : statsFailed ? null : <Skeleton lines={3} />}
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-border/60 px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Overview sections">
+          {(
+            [
+              ["stats", "Stats"],
+              ["requests", "Requests"],
+              ["audit", "Audit events"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={section === id}
+              onClick={() => setSection(id)}
+              className={cn(
+                "rounded-full border px-3.5 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/60",
+                section === id
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/70 bg-card/60 text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <Tabs defaultValue="requests">
-        <TabsList>
-          <TabsTrigger value="requests">Requests</TabsTrigger>
-          <TabsTrigger value="audit">Audit events</TabsTrigger>
-        </TabsList>
-        <TabsContent value="requests" className="mt-3">
-          <RequestsPanel />
-        </TabsContent>
-        <TabsContent value="audit" className="mt-3">
-          <AuditPanel />
-        </TabsContent>
-      </Tabs>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        {section === "stats" ? (
+          <div className="grid w-full gap-4">
+            {statsFailed ? <ErrorBanner message="We couldn't load the summary tiles." /> : null}
+            {stats ? <StatsTiles stats={stats} /> : statsFailed ? null : <Skeleton lines={3} />}
+          </div>
+        ) : null}
+        {section === "requests" ? <RequestsPanel /> : null}
+        {section === "audit" ? <AuditPanel /> : null}
+      </div>
     </div>
   );
 }
@@ -94,7 +144,7 @@ function RequestsPanel() {
   useEffect(load, [load]);
 
   return (
-    <div className="grid gap-3">
+    <div className="grid w-full gap-3">
       <div className="flex flex-wrap items-end gap-3">
         <label className="grid gap-1 text-sm">
           Status

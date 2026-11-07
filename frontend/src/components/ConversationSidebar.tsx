@@ -28,7 +28,7 @@ export function ConversationSidebar({
 }: ConversationSidebarProps) {
   return (
     <div className="flex h-full flex-col gap-3 p-3">
-      <Button onClick={onNewChat} className="w-full">
+      <Button onClick={onNewChat} className="w-full rounded-xl">
         <MessageSquarePlus aria-hidden="true" />
         New chat
       </Button>
@@ -41,11 +41,11 @@ export function ConversationSidebar({
         ) : conversations === null ? (
           <Skeleton lines={5} />
         ) : conversations.length === 0 ? (
-          <p className="px-1 text-sm text-muted-foreground">
+          <p className="px-2 text-sm leading-relaxed text-muted-foreground">
             No conversations yet. Ask your first question.
           </p>
         ) : (
-          <ul className="grid gap-0.5">
+          <ul className="grid gap-1">
             {conversations.map((conversation) => (
               <li key={conversation.id}>
                 <button
@@ -53,10 +53,10 @@ export function ConversationSidebar({
                   onClick={() => onSelect(conversation.id)}
                   aria-current={conversation.id === activeId ? "true" : undefined}
                   className={cn(
-                    "w-full rounded-md px-2 py-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
+                    "w-full rounded-xl px-2.5 py-2 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/60",
                     conversation.id === activeId
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-muted",
+                      ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-border/70"
+                      : "hover:bg-muted/80",
                   )}
                 >
                   <span className="block truncate text-sm font-medium">{conversation.title}</span>

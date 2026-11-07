@@ -30,7 +30,13 @@ from app.services.generation_audit import (
     record_generation_call,
     resolve_status,
 )
-from app.services.stream_events import SseEvent, citations_event, done_event, ticket_offer_event
+from app.services.stream_events import (
+    SseEvent,
+    citations_event,
+    done_event,
+    ticket_offer_event,
+    trace_event,
+)
 
 
 @dataclass(frozen=True)
@@ -69,10 +75,22 @@ def finish_generation(
     fallback_used: bool,
 ) -> Generator[SseEvent, None, FinalAnswer]:
     is_refusal = tool_call is not None
+    yield trace_event("ground", "running", "Checking grounding", "Citations and facts vs sources")
     grounding = check_grounding(answer_text, sources, is_refusal=is_refusal)
     audit_grounding_issues(db, request_id, user, grounding)
 
     status = resolve_status(partial, is_refusal, grounding.status)
+    ground_detail = (
+        f"Status {status.value} · {len(grounding.valid_citation_numbers)} valid citation(s)"
+    )
+    if grounding.removed_citation_numbers:
+        ground_detail += f" · dropped invalid {sorted(grounding.removed_citation_numbers)}"
+    yield trace_event(
+        "ground",
+        "done" if status != LlmCallStatus.UNGROUNDED else "failed",
+        "Checking grounding",
+        ground_detail,
+    )
     ticket_offer = is_refusal or status == LlmCallStatus.UNGROUNDED
     suggested_title = tool_call_title(tool_call) or (
         default_ticket_title(question) if ticket_offer else None

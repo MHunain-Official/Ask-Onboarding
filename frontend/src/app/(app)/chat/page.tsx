@@ -1,12 +1,11 @@
 "use client";
 
-import { History, Library } from "lucide-react";
+import { History, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChatComposer } from "@/components/ChatComposer";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
-import { EmptyState } from "@/components/EmptyState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { SourceDrawer } from "@/components/SourceDrawer";
@@ -17,10 +16,22 @@ import { listConversations } from "@/lib/api";
 import type { Citation, ConversationSummary } from "@/lib/types";
 
 const STARTER_QUESTIONS = [
-  "How do I submit an expense report?",
-  "What is on the 2026 holiday calendar?",
-  "How do I get help from IT?",
-  "What are the code review guidelines?",
+  {
+    label: "Expenses",
+    question: "How do I submit an expense report?",
+  },
+  {
+    label: "Holidays",
+    question: "What is on the 2026 holiday calendar?",
+  },
+  {
+    label: "IT help",
+    question: "How do I get help from IT?",
+  },
+  {
+    label: "Code review",
+    question: "What are the code review guidelines?",
+  },
 ];
 
 export default function ChatPage() {
@@ -76,7 +87,7 @@ export default function ChatPage() {
     <div className="flex h-full">
       <aside
         aria-label="Conversation history"
-        className="hidden w-64 shrink-0 border-r bg-sidebar md:block"
+        className="hidden w-64 shrink-0 border-r border-border/70 bg-sidebar/80 backdrop-blur-sm md:block"
       >
         {sidebar}
       </aside>
@@ -90,7 +101,7 @@ export default function ChatPage() {
       </Sheet>
 
       <section aria-label="Chat" className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center border-b px-3 py-1.5 md:hidden">
+        <div className="flex items-center border-b border-border/70 px-3 py-1.5 md:hidden">
           <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}>
             <History aria-hidden="true" />
             History
@@ -133,25 +144,33 @@ export default function ChatPage() {
 
 function EmptyChat({ onPick }: { onPick: (question: string) => void }) {
   return (
-    <div className="grid gap-5 pt-6">
-      <EmptyState
-        icon={Library}
-        title="Ask anything about the company"
-        description="Answers come only from uploaded documents, with sources you can open. If I can't find it, I'll say so and offer a help-desk ticket."
-      />
-      <div>
-        <h2 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+    <div className="grid gap-8 pt-8 sm:pt-14">
+      <div className="animate-rise mx-auto max-w-lg text-center">
+        <span className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground ring-1 ring-border/70">
+          <Sparkles className="size-5" aria-hidden="true" />
+        </span>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+          What do you need to know?
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          Answers come only from uploaded documents, with sources you can open. If it isn&apos;t in
+          the library, I&apos;ll say so and offer a help-desk ticket.
+        </p>
+      </div>
+      <div className="animate-rise stagger-2">
+        <h2 className="mb-3 text-center text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Try asking
         </h2>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {STARTER_QUESTIONS.map((question) => (
-            <li key={question}>
+        <ul className="grid gap-2.5 sm:grid-cols-2">
+          {STARTER_QUESTIONS.map(({ label, question }, index) => (
+            <li key={question} className={index > 1 ? "stagger-3 animate-rise" : undefined}>
               <button
                 type="button"
                 onClick={() => onPick(question)}
-                className="w-full rounded-lg border bg-card p-3 text-left text-sm outline-none transition-colors hover:border-ring hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/60"
+                className="group flex h-full w-full flex-col gap-1.5 rounded-2xl border border-border/70 bg-card/80 p-4 text-left outline-none transition-all hover:-translate-y-0.5 hover:border-ring hover:bg-accent/35 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/60"
               >
-                {question}
+                <span className="text-xs font-medium tracking-wide text-ring uppercase">{label}</span>
+                <span className="text-sm leading-snug font-medium">{question}</span>
               </button>
             </li>
           ))}

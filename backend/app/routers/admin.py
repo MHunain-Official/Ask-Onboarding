@@ -16,11 +16,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import AuditEvent, LlmCall, LlmCallStatus, UserRole
+from app.config import get_settings
 from app.schemas import (
     AdminStats,
     AuditEventListResponse,
     LlmCallDetail,
     LlmCallListResponse,
+    ProjectDocContent,
+    ProjectDocListResponse,
+    ProjectDocMeta,
 )
 from app.security import require_role
 from app.services.admin_query_service import (
@@ -32,6 +36,12 @@ from app.services.admin_query_service import (
     user_names_by_id,
 )
 from app.services.admin_stats_service import compute_admin_stats
+from app.services.project_docs_service import (
+    ProjectDocsError,
+    list_project_docs,
+    read_project_doc,
+    resolve_docs_root,
+)
 
 router = APIRouter(
     prefix="/api/admin",
@@ -102,3 +112,36 @@ def list_audit_events(
         .all()
     )
     return AuditEventListResponse(items=[to_audit_event_public(row) for row in rows], total=total)
+
+
+def _docs_root():
+    settings = get_settings()
+    configured = settings.project_docs_root.strip() or None
+    return resolve_docs_root(configured), configured is not None
+
+
+@router.get("/project-docs", response_model=ProjectDocListResponse)
+def get_project_docs_index() -> ProjectDocListResponse:
+    root, configured = _docs_root()
+    items = [
+        ProjectDocMeta(path=entry.path, title=entry.title, group=entry.group)
+        for entry in list_project_docs(root)
+    ]
+    return ProjectDocListResponse(items=items, root_configured=configured or root.exists())
+
+
+@router.get("/project-docs/content", response_model=ProjectDocContent)
+def get_project_doc_content(
+    path: str = Query(min_length=1, max_length=400),
+) -> ProjectDocContent:
+    root, _ = _docs_root()
+    try:
+        entry, text = read_project_doc(root, path)
+    except ProjectDocsError as error:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(error)) from error
+    return ProjectDocContent(
+        path=entry.path,
+        title=entry.title,
+        group=entry.group,
+        content=text,
+    )

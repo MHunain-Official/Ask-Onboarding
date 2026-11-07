@@ -9,6 +9,7 @@ import { DocumentTable } from "@/components/DocumentTable";
 import { DocumentViewDialog } from "@/components/DocumentViewDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/Skeleton";
 import { UploadDropzone } from "@/components/UploadDropzone";
 import { UploadProgressList, type UploadTask } from "@/components/UploadProgressList";
@@ -102,17 +103,15 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5 p-4 sm:p-6">
-      <header>
-        <h1 className="font-heading text-2xl font-semibold">
-          {canManage ? "Document library" : "Company documents"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {canManage
+    <div className="mx-auto grid max-w-6xl gap-6 p-4 sm:p-6">
+      <PageHeader
+        title={canManage ? "Document library" : "Company documents"}
+        description={
+          canManage
             ? "Upload the files the assistant may answer from. Choose who can read each file. Re-uploading the same filename replaces the old version after indexing."
-            : "Browse documents you are allowed to read. Uploads and deletions are handled by managers and admins."}
-        </p>
-      </header>
+            : "Browse documents you are allowed to read. Uploads and deletions are handled by managers and admins."
+        }
+      />
 
       {canManage ? (
         <>

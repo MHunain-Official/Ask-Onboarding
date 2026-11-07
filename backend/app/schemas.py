@@ -285,3 +285,24 @@ class AuditEventPublic(BaseModel):
 class AuditEventListResponse(BaseModel):
     items: list[AuditEventPublic]
     total: int
+
+
+# --- Admin project docs (review ARCHITECTURE / ADRs / rules in-app) ---
+
+
+class ProjectDocMeta(BaseModel):
+    path: str
+    title: str
+    group: str
+
+
+class ProjectDocListResponse(BaseModel):
+    items: list[ProjectDocMeta]
+    root_configured: bool
+
+
+class ProjectDocContent(BaseModel):
+    path: str
+    title: str
+    group: str
+    content: str

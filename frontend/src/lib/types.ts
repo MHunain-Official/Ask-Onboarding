@@ -114,6 +114,16 @@ export interface ChatRequest {
   bypass_cache?: boolean;
 }
 
+export type TraceStatus = "running" | "done" | "skipped" | "failed";
+
+export interface TraceStep {
+  step: string;
+  status: TraceStatus;
+  title: string;
+  detail?: string;
+  data?: Record<string, unknown>;
+}
+
 export type ChatEvent =
   | {
       event: "meta";
@@ -125,6 +135,7 @@ export type ChatEvent =
         cached_at?: string;
       };
     }
+  | { event: "trace"; data: TraceStep }
   | { event: "token"; data: { text: string } }
   | { event: "citations"; data: { items: Citation[] } }
   | { event: "ticket_offer"; data: TicketOffer }
@@ -196,6 +207,21 @@ export interface AuditEvent {
   user_id: string | null;
   detail: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface ProjectDocMeta {
+  path: string;
+  title: string;
+  group: string;
+}
+
+export interface ProjectDocContent extends ProjectDocMeta {
+  content: string;
+}
+
+export interface ProjectDocListResponse {
+  items: ProjectDocMeta[];
+  root_configured: boolean;
 }
 
 export interface ListResponse<T> {

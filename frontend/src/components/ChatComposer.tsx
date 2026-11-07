@@ -41,9 +41,9 @@ export function ChatComposer({ isStreaming, onSend, onStop }: ChatComposerProps)
         event.preventDefault();
         submit();
       }}
-      className="border-t bg-card p-3"
+      className="border-t border-border/60 bg-background/70 p-3 backdrop-blur-md sm:p-4"
     >
-      <div className="mx-auto flex max-w-3xl items-end gap-2">
+      <div className="surface-glass mx-auto flex max-w-3xl items-end gap-2 rounded-2xl p-2 sm:gap-3 sm:p-2.5">
         <div className="min-w-0 flex-1">
           <label htmlFor="question" className="sr-only">
             Your question
@@ -61,21 +61,27 @@ export function ChatComposer({ isStreaming, onSend, onStop }: ChatComposerProps)
                 submit();
               }
             }}
-            className="max-h-40 min-h-12 resize-none"
+            className="max-h-40 min-h-12 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Enter to send, Shift+Enter for a new line · {text.length}/{MAX_QUESTION_CHARS}
+          <p className="px-3 pb-1 text-xs text-muted-foreground">
+            Enter to send · Shift+Enter for a new line · {text.length}/{MAX_QUESTION_CHARS}
           </p>
         </div>
         {isStreaming ? (
-          <Button type="button" variant="outline" size="lg" onClick={onStop}>
+          <Button type="button" variant="outline" size="lg" className="rounded-xl" onClick={onStop}>
             <Square aria-hidden="true" />
             Stop
           </Button>
         ) : (
-          <Button type="submit" size="lg" disabled={text.trim() === ""}>
+          <Button
+            type="submit"
+            size="lg"
+            className="rounded-xl"
+            disabled={text.trim() === ""}
+            aria-label="Send question"
+          >
             <SendHorizontal aria-hidden="true" />
-            Send
+            <span className="hidden sm:inline">Send</span>
           </Button>
         )}
       </div>

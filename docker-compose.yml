@@ -21,6 +21,8 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://app:app@db:5432/askonboarding
+      # Admin Docs tab: monorepo markdown (ARCHITECTURE, ADRs, rules, …).
+      PROJECT_DOCS_ROOT: /app/repo
     ports:
       - "8000:8000"
     volumes:
@@ -28,6 +30,8 @@ services:
       # Read-only: the seed copies these bytes into `uploads` via the same
       # `store_file()` an upload uses; the backend never writes here.
       - ./sample-data:/app/sample-data:ro
+      # Full repo, read-only — only allowlisted .md/.mdc paths are served.
+      - ./:/app/repo:ro
     depends_on:
       db:
         condition: service_healthy

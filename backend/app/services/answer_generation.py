@@ -29,7 +29,7 @@ from app.models import Conversation, User
 from app.retrieval.hybrid import RetrievalResult
 from app.services.answer_persistence import FinalAnswer, finish_generation
 from app.services.fallback_responses import provider_unavailable_response
-from app.services.stream_events import SseEvent, token_event
+from app.services.stream_events import SseEvent, token_event, trace_event
 
 _ConsumeResult = tuple[
     list[str], ToolCall | None, StreamUsage | None, int | None, int, bool, Exception | None
@@ -70,12 +70,19 @@ def generate_and_stream_answer(
         )
         return None
 
+    yield trace_event(
+        "generate",
+        "running",
+        "Generating answer",
+        "Primary model · tool: offer_help_desk_ticket",
+    )
     try:
         events, model_used, fallback_used = stream_with_fallback(
             llm_client, messages, ALL_TOOLS, settings.llm_model, settings.llm_fallback_model
         )
     except Exception as exc:
         breaker.record_failure()
+        yield trace_event("generate", "failed", "Generating answer", "Provider unavailable")
         yield from provider_unavailable_response(
             db,
             conversation,
@@ -106,6 +113,7 @@ def generate_and_stream_answer(
 
     answer_text = "".join(text_parts)
     if stream_error is not None and not text_parts:
+        yield trace_event("generate", "failed", "Generating answer", "Stream failed before any tokens")
         yield from provider_unavailable_response(
             db,
             conversation,
@@ -119,6 +127,17 @@ def generate_and_stream_answer(
             stream_error,
         )
         return None
+
+    model_note = model_used or settings.llm_model
+    if fallback_used:
+        model_note = f"{model_note} (fallback)"
+    yield trace_event(
+        "generate",
+        "done",
+        "Generating answer",
+        f"{model_note} · {generation_ms} ms"
+        + (f" · first token {first_token_ms} ms" if first_token_ms is not None else ""),
+    )
 
     final_answer = yield from finish_generation(
         db=db,

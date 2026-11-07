@@ -44,6 +44,11 @@ services:
     environment:
       APP_ENV: production
       DATABASE_URL: postgresql+psycopg://app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/askonboarding
+      PROJECT_DOCS_ROOT: /app/repo
+    volumes:
+      - uploads:/app/uploads
+      - ./sample-data:/app/sample-data:ro
+      - ./:/app/repo:ro
     healthcheck:
       test:
         - CMD

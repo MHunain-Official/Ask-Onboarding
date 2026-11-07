@@ -206,3 +206,38 @@ def test_audit_events_lists_the_provider_outage_event_and_is_admin_only(
 
     employee_client = make_client(demo_user)
     assert employee_client.get("/api/admin/audit-events").status_code == 403
+
+
+def test_project_docs_are_admin_only_and_readable(
+    admin_user: User, demo_user: User, make_client: Callable[..., TestClient], tmp_path, monkeypatch
+) -> None:
+    """Reviewers read ARCHITECTURE etc. from Admin → Docs; employees cannot."""
+    (tmp_path / "ARCHITECTURE.md").write_text("# Architecture\n\nPgvector.\n", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
+    monkeypatch.setenv("PROJECT_DOCS_ROOT", str(tmp_path))
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    admin_client = make_client(admin_user)
+    listed = admin_client.get("/api/admin/project-docs")
+    assert listed.status_code == 200
+    paths = {item["path"] for item in listed.json()["items"]}
+    assert "ARCHITECTURE.md" in paths
+
+    content = admin_client.get(
+        "/api/admin/project-docs/content", params={"path": "ARCHITECTURE.md"}
+    )
+    assert content.status_code == 200
+    assert "Pgvector" in content.json()["content"]
+
+    # Unknown paths 404 (traversal cases live in unit tests).
+    assert (
+        admin_client.get(
+            "/api/admin/project-docs/content", params={"path": "does-not-exist.md"}
+        ).status_code
+        == 404
+    )
+    # make_client swaps the signed-in user on the shared app — call this last.
+    assert make_client(demo_user).get("/api/admin/project-docs").status_code == 403
+    get_settings.cache_clear()

@@ -1,15 +1,15 @@
 "use client";
 
-import { Loader2, ShieldCheck, UserRound, Users } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Loader2, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { RoleBadge } from "@/components/RoleBadge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { login } from "@/lib/api";
 import type { UserRole } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const DEMO_USERS = [
   {
@@ -17,25 +17,24 @@ const DEMO_USERS = [
     name: "Demo Employee",
     role: "employee" as UserRole,
     icon: UserRound,
-    blurb: "Sees company-wide documents only.",
+    blurb: "Company-wide handbook answers.",
   },
   {
     email: "manager@demo.local",
     name: "Demo Manager",
     role: "manager" as UserRole,
     icon: Users,
-    blurb: "Also sees manager-only documents.",
+    blurb: "Plus manager-only docs and tickets.",
   },
   {
     email: "admin@demo.local",
     name: "Demo Admin",
     role: "admin" as UserRole,
     icon: ShieldCheck,
-    blurb: "Everything, plus the audit dashboard.",
+    blurb: "Full library, tickets, and audit KPIs.",
   },
 ];
 
-// Only follow same-site relative paths so ?next= cannot become an open redirect.
 function safeNextPath(next: string | null): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/chat";
 }
@@ -61,16 +60,20 @@ function LoginForm() {
   return (
     <div className="grid gap-3">
       {error ? <ErrorBanner message={error} /> : null}
-      <ul className="grid gap-3">
-        {DEMO_USERS.map(({ email, name, role, icon: Icon, blurb }) => (
-          <li key={email}>
+      <ul className="grid gap-2.5">
+        {DEMO_USERS.map(({ email, name, role, icon: Icon, blurb }, index) => (
+          <li key={email} className={cn("animate-rise", `stagger-${index + 1}`)}>
             <button
               type="button"
               disabled={pendingEmail !== null}
               onClick={() => void signIn(email)}
-              className="flex w-full items-center gap-4 rounded-lg border bg-card p-4 text-left outline-none transition-colors hover:border-ring hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/60 disabled:opacity-60"
+              className={cn(
+                "group flex w-full items-center gap-4 rounded-2xl border bg-card/80 p-4 text-left outline-none transition-all",
+                "hover:-translate-y-0.5 hover:border-ring hover:bg-accent/40 hover:shadow-md",
+                "focus-visible:ring-3 focus-visible:ring-ring/60 disabled:opacity-60",
+              )}
             >
-              <span className="flex size-10 items-center justify-center rounded-full bg-accent text-accent-foreground">
+              <span className="flex size-11 items-center justify-center rounded-2xl bg-accent text-accent-foreground transition-colors group-hover:bg-ring group-hover:text-primary-foreground">
                 {pendingEmail === email ? (
                   <Loader2 className="size-5 animate-spin" aria-hidden="true" />
                 ) : (
@@ -78,12 +81,16 @@ function LoginForm() {
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{name}</span>
                   <RoleBadge role={role} />
                 </span>
-                <span className="block text-sm text-muted-foreground">{blurb}</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">{blurb}</span>
               </span>
+              <ArrowRight
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-ring"
+                aria-hidden="true"
+              />
             </button>
           </li>
         ))}
@@ -94,30 +101,42 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <main className="relative flex min-h-dvh items-center justify-center p-4">
-      <div className="absolute top-3 right-3">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden p-4 sm:p-8">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,oklch(0.45_0.03_230/0.08)_1px,transparent_0)] [background-size:22px_22px]"
+      />
+      <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="font-heading text-2xl">
+
+      <div className="relative z-10 grid w-full max-w-5xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-14">
+        <section className="animate-rise space-y-5 text-center lg:text-left">
+          <p className="inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase backdrop-blur">
+            <BookOpenCheck className="size-3.5 text-ring" aria-hidden="true" />
+            Company knowledge, cited
+          </p>
+          <h1 className="font-heading text-4xl leading-[1.08] font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem]">
             Ask <span className="text-ring">Onboarding</span>
-          </CardTitle>
-          <CardDescription>
-            Answers about the company, only from its documents, with sources. Choose a demo account
-            to continue.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
+          </h1>
+          <p className="mx-auto max-w-md text-base text-muted-foreground lg:mx-0">
+            Answers only from your handbook and wiki — with the exact passage highlighted. Pick a
+            demo role to try it.
+          </p>
+        </section>
+
+        <section className="surface-glass animate-rise stagger-2 rounded-3xl p-5 sm:p-7">
+          <div className="mb-5">
+            <h2 className="font-heading text-xl font-semibold">Continue as</h2>
+            <p className="text-sm text-muted-foreground">
+              Demo accounts have no password. Real deployments would use company SSO.
+            </p>
+          </div>
           <Suspense fallback={null}>
             <LoginForm />
           </Suspense>
-          <p className="text-xs text-muted-foreground">
-            Demo only: these accounts have no password. A real deployment would use company single
-            sign-on.
-          </p>
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </main>
   );
 }

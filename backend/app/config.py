@@ -80,6 +80,11 @@ class Settings(BaseSettings):
     # --- Prompt versioning (cache keys include this; §5.10 rule 4) ---
     prompt_version: str = "v1"
 
+    # Repo root that holds README/ARCHITECTURE/docs for the admin Docs tab.
+    # Empty → auto-detect by walking up for AGENTS.md. In Docker set to
+    # /app/repo and mount the monorepo there (read-only).
+    project_docs_root: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

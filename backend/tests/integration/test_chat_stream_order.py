@@ -82,6 +82,12 @@ def test_events_arrive_in_order_and_llm_call_is_persisted(
     assert names[-1] == "done"
     assert names.count("token") >= 1
     assert names.index("citations") < names.index("done")
+    # Retrieval-track breadcrumbs: receive → route → … → retrieve → generate.
+    assert "trace" in names
+    trace_steps = [payload["step"] for name, payload in events if name == "trace"]
+    assert "receive" in trace_steps
+    assert "retrieve" in trace_steps
+    assert "generate" in trace_steps
     # Tokens arrive as separate events, not one giant blob — proves this
     # really streamed rather than buffering the whole answer first.
     assert names.count("token") > 1

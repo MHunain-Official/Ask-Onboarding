@@ -17,6 +17,9 @@ import type {
   ListResponse,
   LlmCallDetail,
   LlmCallSummary,
+  ProjectDocContent,
+  ProjectDocListResponse,
+  ProjectDocMeta,
   Ticket,
   TicketCreateRequest,
   TicketStatus,
@@ -244,9 +247,27 @@ export async function listAuditEvents(): Promise<AuditEvent[]> {
   return body.items;
 }
 
+export async function listProjectDocs(): Promise<ProjectDocMeta[]> {
+  const body = await request<ProjectDocListResponse>("/api/admin/project-docs");
+  return body.items;
+}
+
+export function getProjectDoc(path: string): Promise<ProjectDocContent> {
+  const query = new URLSearchParams({ path });
+  return request<ProjectDocContent>(`/api/admin/project-docs/content?${query}`);
+}
+
 // --- Chat streaming (SSE over POST) ---
 
-const CHAT_EVENT_NAMES = new Set(["meta", "token", "citations", "ticket_offer", "done", "error"]);
+const CHAT_EVENT_NAMES = new Set([
+  "meta",
+  "trace",
+  "token",
+  "citations",
+  "ticket_offer",
+  "done",
+  "error",
+]);
 
 // Turns one raw SSE message into a typed ChatEvent, or null if it is
 // unknown or malformed (we ignore those instead of crashing the stream).

@@ -35,5 +35,25 @@ def error_event(code: str, message: str, request_id: str) -> SseEvent:
     return _event("error", {"code": code, "message": message, "request_id": request_id})
 
 
+def trace_event(
+    step: str,
+    status: str,
+    title: str,
+    detail: str | None = None,
+    data: dict[str, Any] | None = None,
+) -> SseEvent:
+    """One pipeline breadcrumb for the chat "Retrieval track" UI.
+
+    `step` is a stable id (route, cache, retrieve, …); `status` is
+    running | done | skipped | failed. Detail is short and user-safe.
+    """
+    payload: dict[str, Any] = {"step": step, "status": status, "title": title}
+    if detail is not None:
+        payload["detail"] = detail
+    if data is not None:
+        payload["data"] = data
+    return _event("trace", payload)
+
+
 def _event(name: str, payload: dict[str, Any]) -> SseEvent:
     return {"event": name, "data": json.dumps(payload)}

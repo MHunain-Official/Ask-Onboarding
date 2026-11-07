@@ -11,7 +11,13 @@ from app.models import CacheHit, Conversation, LlmCallStatus, MessageRole, User
 from app.services.audit_service import LlmCallRecord, record_llm_call
 from app.services.cache_service import CachedAnswer
 from app.services.conversation_service import persist_message
-from app.services.stream_events import SseEvent, citations_event, done_event
+from app.services.stream_events import (
+    SseEvent,
+    citations_event,
+    done_event,
+    token_event,
+    trace_event,
+)
 
 
 def cache_hit_response(
@@ -23,6 +29,16 @@ def cache_hit_response(
     cached: CachedAnswer,
     settings: Settings,
 ) -> Iterator[SseEvent]:
+    yield trace_event(
+        "cache",
+        "done",
+        "Saved answer",
+        "Exact cache hit — skipped embedding, retrieval, and the LLM",
+        {"cache_hit": "exact"},
+    )
+    yield trace_event("retrieve", "skipped", "Document search", "Not needed for a cached answer")
+    yield trace_event("generate", "skipped", "LLM generation", "Replaying the saved answer")
+
     message = persist_message(
         db,
         conversation.id,
@@ -46,6 +62,8 @@ def cache_hit_response(
             cache_hit=CacheHit.EXACT,
         ),
     )
+    # Replay the text so the UI can stream/show it like a normal answer.
+    yield token_event(cached.answer_text)
     if cached.citations:
         yield citations_event(cached.citations)
     yield done_event(str(message.id), LlmCallStatus.OK.value)

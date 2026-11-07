@@ -27,17 +27,19 @@ export function UploadDropzone({ onFiles }: UploadDropzoneProps) {
         onFiles(Array.from(event.dataTransfer.files));
       }}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-lg border-2 border-dashed bg-card px-6 py-8 text-center transition-colors",
-        dragging ? "border-ring bg-accent/60" : "border-input",
+        "flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed bg-card/70 px-6 py-10 text-center backdrop-blur-sm transition-all",
+        dragging ? "scale-[1.01] border-ring bg-accent/50 shadow-md" : "border-border/80",
       )}
     >
-      <UploadCloud className="size-8 text-ring" aria-hidden="true" />
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground ring-1 ring-border/60">
+        <UploadCloud className="size-6" aria-hidden="true" />
+      </span>
       <p className="text-sm">
         Drag files here, or{" "}
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="rounded-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
+          className="rounded-sm font-medium text-ring underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
         >
           browse
         </button>

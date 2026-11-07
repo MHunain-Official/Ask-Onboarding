@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { ApiError, getConversation, streamChat } from "@/lib/api";
-import type { ChatEvent, Citation, StoredMessage, TicketOffer } from "@/lib/types";
+import type { ChatEvent, Citation, StoredMessage, TicketOffer, TraceStep } from "@/lib/types";
 
 export type ChatItemStatus =
   "streaming" | "ok" | "no_answer" | "error" | "refused" | "ungrounded" | "partial" | "stopped";
@@ -19,6 +19,8 @@ export interface ChatItem {
   errorMessage?: string;
   requestId?: string;
   cachedAt?: string;
+  /** Live pipeline breadcrumbs from SSE `trace` events. */
+  trace: TraceStep[];
 }
 
 let localIdCounter = 0;
@@ -49,6 +51,17 @@ function applyEvent(item: ChatItem, event: ChatEvent): ChatItem {
             ? (event.data.cached_at ?? "saved")
             : undefined,
       };
+    case "trace":
+      return {
+        ...item,
+        cachedAt:
+          event.data.step === "cache" &&
+          event.data.status === "done" &&
+          event.data.data?.cache_hit === "exact"
+            ? "saved"
+            : item.cachedAt,
+        trace: upsertTrace(item.trace, event.data),
+      };
     case "token":
       return { ...item, content: item.content + event.data.text };
     case "citations":
@@ -71,6 +84,14 @@ function applyEvent(item: ChatItem, event: ChatEvent): ChatItem {
   }
 }
 
+function upsertTrace(steps: TraceStep[], next: TraceStep): TraceStep[] {
+  const index = steps.findIndex((step) => step.step === next.step);
+  if (index === -1) return [...steps, next];
+  const copy = steps.slice();
+  copy[index] = next;
+  return copy;
+}
+
 function fromStored(message: StoredMessage, previousQuestion: string): ChatItem {
   return {
     id: message.id,
@@ -84,6 +105,7 @@ function fromStored(message: StoredMessage, previousQuestion: string): ChatItem 
         }
       : null,
     status: "ok",
+    trace: [],
   };
 }
 
@@ -165,6 +187,7 @@ export function useChatStream(onConversationStarted: () => void) {
         citations: [],
         ticketOffer: null,
         status: "streaming",
+        trace: [],
       },
     ]);
     return id;
@@ -179,6 +202,7 @@ export function useChatStream(onConversationStarted: () => void) {
         citations: [],
         ticketOffer: null,
         status: "ok",
+        trace: [],
       };
       setItems((current) => [...current, userItem]);
       void runStream(question, startAssistantItem(), false);
@@ -200,6 +224,7 @@ export function useChatStream(onConversationStarted: () => void) {
         status: "streaming",
         errorMessage: undefined,
         cachedAt: undefined,
+        trace: [],
       }));
       void runStream(question, assistantId, bypassCache);
     },

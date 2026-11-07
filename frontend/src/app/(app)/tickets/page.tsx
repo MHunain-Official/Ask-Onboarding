@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/Skeleton";
 import { StatusChip } from "@/components/StatusChip";
 import { buttonVariants } from "@/components/ui/button";
@@ -59,15 +60,15 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5 p-4 sm:p-6">
-      <header>
-        <h1 className="font-heading text-2xl font-semibold">Help-desk tickets</h1>
-        <p className="text-sm text-muted-foreground">
-          {canManage
+    <div className="mx-auto grid max-w-6xl gap-6 p-4 sm:p-6">
+      <PageHeader
+        title="Help-desk tickets"
+        description={
+          canManage
             ? "Triage every ticket. Update status so employees can see progress."
-            : "Tickets you asked the assistant to open, with live status from the help desk."}
-        </p>
-      </header>
+            : "Tickets you asked the assistant to open, with live status from the help desk."
+        }
+      />
 
       {failed ? <ErrorBanner message="We couldn't load tickets." onRetry={load} /> : null}
       {tickets === null && !failed ? <Skeleton lines={5} /> : null}

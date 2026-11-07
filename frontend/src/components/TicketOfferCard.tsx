@@ -44,11 +44,14 @@ export function TicketOfferCard({ offer, conversationId }: TicketOfferCardProps)
     return (
       <div
         role="status"
-        className="flex flex-wrap items-center gap-3 rounded-lg border border-success/40 bg-success-soft p-3 text-sm text-success"
+        className="flex flex-wrap items-center gap-3 rounded-2xl border border-success/40 bg-success-soft p-4 text-sm text-success"
       >
         <CheckCircle2 className="size-4" aria-hidden="true" />
         <span className="font-medium">Ticket opened. The help desk will follow up.</span>
-        <Link href="/tickets" className={buttonVariants({ variant: "outline", size: "sm" })}>
+        <Link
+          href="/tickets"
+          className={buttonVariants({ variant: "outline", size: "sm", className: "rounded-full" })}
+        >
           View my tickets
         </Link>
       </div>
@@ -56,20 +59,26 @@ export function TicketOfferCard({ offer, conversationId }: TicketOfferCardProps)
   }
 
   return (
-    <div className="rounded-lg border bg-card p-3 text-sm">
-      <p className="flex items-center gap-2 font-medium">
-        <LifeBuoy className="size-4 text-ring" aria-hidden="true" />I couldn&apos;t find this in the
-        documents. Want me to open a help-desk ticket?
+    <div className="rounded-2xl border border-border/70 bg-card/90 p-4 text-sm shadow-sm">
+      <p className="flex items-start gap-2 font-medium">
+        <LifeBuoy className="mt-0.5 size-4 shrink-0 text-ring" aria-hidden="true" />
+        <span>I couldn&apos;t find this in the documents. Want me to open a help-desk ticket?</span>
       </p>
-      <p className="mt-1 text-muted-foreground">&ldquo;{offer.suggested_title}&rdquo;</p>
-      <div className="mt-3 flex gap-2">
-        <Button size="sm" disabled={state === "creating"} onClick={() => void openTicket()}>
+      <p className="mt-2 pl-6 text-muted-foreground">&ldquo;{offer.suggested_title}&rdquo;</p>
+      <div className="mt-4 flex flex-wrap gap-2 pl-6">
+        <Button
+          size="sm"
+          className="rounded-full"
+          disabled={state === "creating"}
+          onClick={() => void openTicket()}
+        >
           {state === "creating" ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
           Yes, open ticket
         </Button>
         <Button
           variant="outline"
           size="sm"
+          className="rounded-full"
           disabled={state === "creating"}
           onClick={() => setState("dismissed")}
         >
