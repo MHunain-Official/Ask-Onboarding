@@ -59,7 +59,9 @@ export function ConversationSidebar({
                       : "hover:bg-muted/80",
                   )}
                 >
-                  <span className="block truncate text-sm font-medium">{conversation.title}</span>
+                  <span className="block truncate text-sm font-medium">
+                    {conversation.title?.trim() || "New chat"}
+                  </span>
                   <span className="block text-xs text-muted-foreground">
                     {formatDate(conversation.created_at)}
                   </span>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { DocumentTextView } from "@/components/DocumentTextView";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { HighlightedText } from "@/components/HighlightedText";
 import { Skeleton } from "@/components/Skeleton";
 import {
   Dialog,
@@ -24,7 +24,7 @@ export function DocumentViewDialog({
 }) {
   return (
     <Dialog open={document !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-3xl lg:max-w-4xl">
         {document ? <Body key={document.id} document={document} /> : null}
       </DialogContent>
     </Dialog>
@@ -51,17 +51,19 @@ function Body({ document }: { document: DocumentItem }) {
 
   return (
     <>
-      <DialogHeader>
+      <DialogHeader className="shrink-0">
         <DialogTitle>{document.filename}</DialogTitle>
         <DialogDescription>Version {document.version} · extracted text</DialogDescription>
       </DialogHeader>
-      {error ? (
-        <ErrorBanner message={error} />
-      ) : content ? (
-        <HighlightedText text={content.text} start={null} end={null} />
-      ) : (
-        <Skeleton lines={8} />
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {error ? (
+          <ErrorBanner message={error} />
+        ) : content ? (
+          <DocumentTextView text={content.text} />
+        ) : (
+          <Skeleton lines={8} />
+        )}
+      </div>
     </>
   );
 }

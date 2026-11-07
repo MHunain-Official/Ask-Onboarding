@@ -17,13 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminStats, listAuditEvents, listLlmCalls } from "@/lib/api";
 import type { AdminStats, AuditEvent, LlmCallSummary } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const STATUS_FILTERS = ["", "ok", "no_answer", "error", "refused", "ungrounded", "partial"];
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type MainTab = "docs" | "overview";
-type OverviewSection = "stats" | "requests" | "audit";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -49,7 +47,7 @@ function AdminDashboard() {
       <div className="shrink-0 space-y-4 border-b border-border/70 px-4 pt-5 pb-3 sm:px-6">
         <PageHeader
           title="Admin"
-          description="Browse project docs full-width, or open Overview for KPIs, requests, and audit."
+          description="Browse project docs full-width, or open Overview for KPIs, requests, and audit on one page."
         />
         <Tabs value={tab} onValueChange={(value) => setTab(value as MainTab)}>
           <TabsList className="h-auto w-fit flex-wrap rounded-full p-1">
@@ -71,7 +69,6 @@ function AdminDashboard() {
 }
 
 function OverviewPanel() {
-  const [section, setSection] = useState<OverviewSection>("stats");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsFailed, setStatsFailed] = useState(false);
 
@@ -82,44 +79,32 @@ function OverviewPanel() {
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border/60 px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Overview sections">
-          {(
-            [
-              ["stats", "Stats"],
-              ["requests", "Requests"],
-              ["audit", "Audit events"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={section === id}
-              onClick={() => setSection(id)}
-              className={cn(
-                "rounded-full border px-3.5 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/60",
-                section === id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border/70 bg-card/60 text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-6">
+      <div className="grid w-full gap-8">
+        <section className="grid gap-3" aria-labelledby="admin-stats-heading">
+          <h2 id="admin-stats-heading" className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Stats
+          </h2>
+          {statsFailed ? <ErrorBanner message="We couldn't load the summary tiles." /> : null}
+          {stats ? <StatsTiles stats={stats} /> : statsFailed ? null : <Skeleton lines={3} />}
+        </section>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        {section === "stats" ? (
-          <div className="grid w-full gap-4">
-            {statsFailed ? <ErrorBanner message="We couldn't load the summary tiles." /> : null}
-            {stats ? <StatsTiles stats={stats} /> : statsFailed ? null : <Skeleton lines={3} />}
-          </div>
-        ) : null}
-        {section === "requests" ? <RequestsPanel /> : null}
-        {section === "audit" ? <AuditPanel /> : null}
+        <section className="grid gap-3" aria-labelledby="admin-requests-heading">
+          <h2
+            id="admin-requests-heading"
+            className="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+          >
+            Requests
+          </h2>
+          <RequestsPanel />
+        </section>
+
+        <section className="grid gap-3" aria-labelledby="admin-audit-heading">
+          <h2 id="admin-audit-heading" className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Audit events
+          </h2>
+          <AuditPanel />
+        </section>
       </div>
     </div>
   );

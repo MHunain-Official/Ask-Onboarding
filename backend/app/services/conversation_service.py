@@ -67,6 +67,21 @@ def persist_message(
         ticket_offer=ticket_offer,
     )
     db.add(message)
+    # First user question becomes the sidebar title (once).
+    if role == MessageRole.USER:
+        conversation = db.get(Conversation, conversation_id)
+        if conversation is not None and not conversation.title:
+            conversation.title = title_from_question(content)
     db.commit()
     db.refresh(message)
     return message
+
+
+def title_from_question(question: str, max_length: int = 72) -> str:
+    """Short, single-line label for the conversation history sidebar."""
+    cleaned = " ".join(question.strip().split())
+    if not cleaned:
+        return "New chat"
+    if len(cleaned) <= max_length:
+        return cleaned
+    return cleaned[: max_length - 1].rstrip() + "…"

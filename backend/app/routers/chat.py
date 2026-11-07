@@ -14,7 +14,7 @@ from app.config import Settings, get_settings
 from app.database import get_db
 from app.llm.base import LlmClient
 from app.llm.factory import get_llm_client
-from app.models import Conversation, Message, User
+from app.models import Conversation, Message, MessageRole, User
 from app.schemas import (
     ChatRequest,
     ConversationDetailResponse,
@@ -25,6 +25,7 @@ from app.schemas import (
 from app.security import require_csrf_header, require_user
 from app.security_hardening import require_chat_rate_limit
 from app.services.answer_service import stream_chat_answer
+from app.services.conversation_service import title_from_question
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -75,8 +76,31 @@ def list_conversations(
         .order_by(Conversation.created_at.desc())
         .all()
     )
-    return ConversationListResponse(
-        items=[ConversationPublic.model_validate(c) for c in conversations]
+    # Older rows may still have a null title — fill from the first user message.
+    items = [_conversation_public(db, conversation) for conversation in conversations]
+    return ConversationListResponse(items=items)
+
+
+def _conversation_public(db: Session, conversation: Conversation) -> ConversationPublic:
+    title = conversation.title
+    if not title:
+        first = (
+            db.query(Message)
+            .filter(
+                Message.conversation_id == conversation.id,
+                Message.role == MessageRole.USER,
+            )
+            .order_by(Message.created_at.asc())
+            .first()
+        )
+        if first is not None:
+            title = title_from_question(first.content)
+            conversation.title = title
+            db.commit()
+    return ConversationPublic(
+        id=conversation.id,
+        title=title or "New chat",
+        created_at=conversation.created_at,
     )
 
 
