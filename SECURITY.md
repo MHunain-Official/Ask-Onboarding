@@ -2,6 +2,8 @@
 
 This is a take-home/demo-grade application with real defences in the places that matter for a RAG system. It has **not** had an external security review. The full model is in [docs/threat-model.md](docs/threat-model.md); this page is the summary.
 
+**Agent / operator boundaries** (VPS, database, backend, confirmation gates): [docs/agent-ops.md](docs/agent-ops.md) and Cursor rule `.cursor/rules/agent-ops-security.mdc`. Critical production actions require explicit owner confirmation; other VPS apps must not be touched.
+
 ## Reporting a vulnerability
 
 Do not open a public issue. Email the repository owner (add the contact address here before publishing; none is configured yet) with steps to reproduce, the affected route or file, and the impact. Expect an acknowledgement within a few days; this is a personal project with no SLA.

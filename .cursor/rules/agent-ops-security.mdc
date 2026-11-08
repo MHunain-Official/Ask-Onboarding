@@ -1,0 +1,62 @@
+---
+description: Safe agent interaction with VPS, database, backend, secrets, and critical actions (confirm with user)
+alwaysApply: true
+---
+
+# Agent ops security (VPS / DB / backend)
+
+The agent is not a free admin. Treat production as hostile to mistakes. Prefer least privilege, ask before irreversible work, and leave an audit trail the owner can review.
+
+## Scope isolation
+
+- **Ask Onboarding only** on the shared VPS: `ssh anil-bahi`, project dir `/opt/ask-onboarding`, compose project `-p ask-onboarding`, file `docker-compose.vps.yml`.
+- **Never** restart, rebuild, stop, or edit containers/images for `schoolos`, `wbs`, or other stacks unless the user names them explicitly.
+- Frontend production is **Vercel** (`ask-onboarding`); API/worker/db are **VPS**. Do not confuse the two.
+
+## Secrets and credentials
+
+- Never print, commit, paste into chat, or log API keys, `.env`, session cookies, or DB passwords.
+- Read `.env` only when required for a named task; prefer checking `KEY=` presence, not values.
+- No `git commit` of `.env`, dumps, or key files. No force-push / history rewrite unless the user explicitly orders it.
+
+## Database
+
+- Prefer **read-only** SQL (`SELECT`) for diagnosis.
+- **No** `DROP`, `TRUNCATE`, `DELETE` without `WHERE`, schema drops, or restore-over-live without explicit user approval.
+- Integration tests that `TRUNCATE` must use `TEST_DATABASE_URL` / throwaway DB — never production / VPS data the owner cares about.
+- Do not change roles, grants, or expose Postgres ports publicly.
+
+## VPS / Docker
+
+- Allowed without extra confirmation when the user already asked to deploy/fix that stack: `git fetch/reset` in `/opt/ask-onboarding`, `docker compose -p ask-onboarding -f docker-compose.vps.yml up -d --build` for **backend/worker only** (or services they named), health curls.
+- **Confirm with the user first** for: `compose down`, volume deletes, image prune that could affect other apps, UFW/SSH/fail2ban changes, reboot, disk wipes, editing production `.env` secrets, opening new public ports.
+- After deploy: verify `/health` + `/ready`; report what changed; leave other stacks untouched.
+
+## Backend / app server
+
+- Production writes go through normal APIs or documented runbook steps — not ad-hoc Python that bypasses auth.
+- Do not disable auth, CSRF, ACL SQL filters, rate limits, or grounding “to make a demo pass”.
+- Migrations on VPS: warn about outage/backup; only run when the user accepts deploy risk (see `docs/runbook.md`).
+
+## Critical actions → need user confirmation
+
+Always ask (short yes/no) before:
+
+1. Destructive DB or disk operations  
+2. Touching non–ask-onboarding services  
+3. Changing production secrets, DNS, TLS, or firewall  
+4. `git push --force`, history rewrite, or deleting GitHub/Vercel projects  
+5. Bulk delete of user data, documents, or audit/`llm_calls` rows  
+6. Spending real money at scale (full live eval / mass re-embed) unless they already requested it  
+
+Routine code edits, local tests, and **explicitly requested** ask-onboarding deploys do not need a second confirmation.
+
+## Monitoring / audit mindset
+
+- Prefer actions that show up in existing logs: container logs, `llm_calls`, `audit_events`, compose ps.
+- Summarize what was run on VPS/DB (commands at high level, no secrets) so the owner can reconstruct the session.
+- If something looks compromised or a secret leaked into chat/logs, stop, tell the user, and rotate via runbook — do not keep using the leaked value.
+
+## Docs
+
+Ops procedure changes → update `docs/runbook.md` / `docs/agent-ops.md` in the same change (see `documentation.mdc`).

@@ -5,7 +5,7 @@ A RAG web app that answers employee questions **only from uploaded documents**, 
 - **Local:** <http://localhost:3000> via `docker compose up --build` (verified running with real OpenAI embeddings + OpenRouter answers).
 - **Deployed:** frontend <https://ask-onboarding.vercel.app> · API <http://13.140.183.22:18083> (`/health` ok). Demo video and screenshots are owner-recorded separately (see [docs/runbook.md](docs/runbook.md)).
 - **Stack:** Next.js (App Router, TypeScript, Tailwind, shadcn/ui) · FastAPI (Python 3.12) · PostgreSQL 16 + pgvector · OpenAI embeddings · OpenRouter for answers.
-- **Design docs:** [ARCHITECTURE.md](ARCHITECTURE.md) · [SECURITY.md](SECURITY.md) · [docs/eval.md](docs/eval.md) · [docs/cheatsheet.md](docs/cheatsheet.md) · [AI_LOG.md](AI_LOG.md)
+- **Design docs:** [ARCHITECTURE.md](ARCHITECTURE.md) · [SECURITY.md](SECURITY.md) · [docs/agent-ops.md](docs/agent-ops.md) · [docs/eval.md](docs/eval.md) · [docs/cheatsheet.md](docs/cheatsheet.md) · [AI_LOG.md](AI_LOG.md)
 
 ## Quick start (local)
 

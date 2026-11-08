@@ -17,6 +17,7 @@ When you change product behaviour, APIs, prompts, config, security, deploy, or e
 | API routes / request-response shape | `ARCHITECTURE.md` or API section in README; OpenAPI is generated from code |
 | “How to change X” owner ops | `docs/cheatsheet.md` |
 | Deploy / backup / outage / VPS | `docs/runbook.md` |
+| Agent/VPS/DB ops boundaries | `docs/agent-ops.md` (+ `.cursor/rules/agent-ops-security.mdc` if the rule changes) |
 | Security behaviour or threat | `SECURITY.md`, `docs/threat-model.md` if the threat model changes |
 | Eval method or numbers | `docs/eval.md` (+ README eval table if numbers change) |
 | User-visible features / limitations | `README.md` features checklist + known limitations |
