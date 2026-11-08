@@ -2,7 +2,7 @@
 
 Ask Onboarding is a RAG app: employees ask questions, the system retrieves passages from uploaded documents the user is allowed to read, and an LLM answers **only** from those passages with validated citations. When the documents don't contain the answer, it says so and offers a ticket.
 
-Numbers in this document come from [docs/eval.md](docs/eval.md) (fake embedder, fake LLM) or from the playbook's scaling assumptions. Where something is an estimate or untested, it says so.
+Numbers in this document come from [docs/eval.md](docs/eval.md): the FakeEmbedder harness table for chunk/hybrid comparison, plus live `llm_calls` observations for real OpenAI + OpenRouter usage. Scaling figures in §3 are estimates. Where something is untested, it says so.
 
 ## Components
 
@@ -88,13 +88,13 @@ Ingestion (separate path): `POST /api/documents` validates extension **and** mag
 | Embeddings | OpenAI `text-embedding-3-small`, 1536 dims, direct (not via a gateway) | Cheap, good enough; changing it forces a full re-embed, so it is kept stable. |
 | Answer LLM | OpenRouter via the `openai` SDK; primary + fallback model from env | One client, many models; fallback is a real outage story. Defaults in `.env.example` are `openai/gpt-4o-mini` for both and are **not** the result of a model comparison. |
 | Top-k | 5 (candidates 20 per ranker) | Small context = lower cost; eval hit-rate@5 reached 100% at 500/80. |
-| No-answer threshold | `MIN_SIMILARITY=0.30` | Playbook starting value. **Not tuned** on real embeddings; the fake-embedder eval got 100.0% unanswerable refusal, which says little about OpenAI vectors. |
-| Caching | Exact answer cache only; semantic cache and extractive shortcut off | Playbook rule: enable only after the eval proves zero false hits. That run has not happened. |
+| No-answer threshold | `MIN_SIMILARITY=0.30` | Playbook starting value. Live chat shows both `ok` and `no_answer` rows with real embeddings, but the threshold was **not grid-searched**. |
+| Caching | Exact answer cache only; semantic cache and extractive shortcut off | Playbook rule: enable semantic cache only after the eval proves zero false hits. That harness run has not happened. |
 
-**What didn't work / what we learned (real, from the build):**
+**What didn't work / what we learned (real, from the build + live use):**
 - 300/60 chunks with vector-only search missed one expected document (95.0%, MRR 0.742). Hybrid fixed it (100.0%, MRR 0.892). With hybrid on, 300/60 and 500/80 tie on both hit-rate and MRR (0.892), so on this small fake-embedder set search mode mattered more than chunk size. We keep 500/80 because it was also 100.0% with hybrid off and keeps sections intact; that is a judgement, not something the eval separates.
 - A pure bag-of-words vector ranker ranks a stopword-stuffed distractor above the real answer (0.86 vs 0.30 similarity); keyword search recovers it (Phase 3 test).
-- Not yet learned: how a real embedder and real models behave. Threshold, model choice and semantic-cache safety are open until a live eval is run.
+- Live product path (OpenAI `text-embedding-3-small` + OpenRouter `openai/gpt-4o-mini`) works end-to-end: large PDF ingest (40 chunks), streaming answers with token/cost rows in `llm_calls`, and grounding can mark `ungrounded`. Observed answered-call cost was roughly **$0.0002–$0.0005**. Still open: formal harness hit-rate with live embeddings, two-model comparison, and semantic-cache false-hit rate.
 
 ## 3. Scaling to 5,000 employees, 200,000 docs, 20,000 questions/day
 
@@ -116,7 +116,7 @@ These are playbook-style estimates, not measurements.
 5. Move the in-memory rate limiter and circuit breaker into shared storage once there is more than one API instance.
 6. Cost levers already present: exact cache, no-answer gate, query-embedding cache, top-k 5, token budgets. Later: semantic cache (after a zero-false-hit eval), cheap-model-first routing, provider prompt caching.
 
-**Rough cost model.** `daily cost = questions × cache-miss rate × (input tokens × input price + output tokens × output price)`. Illustrative assumptions only: ~3,000 input + ~300 output tokens per generated answer, `LLM_PRICE_*` from the provider page, and a cache/gate skip rate we have **not measured**. At the `.env.example` placeholder prices of $0.15 / $0.60 per million tokens: per answer ≈ 3,000 × 0.15e-6 + 300 × 0.60e-6 ≈ $0.00063; 20,000 answers/day ≈ $12.60/day before any caching. With `DAILY_COST_CAP_USD=10` the default global cap would trip at that volume, so it must be raised or the cache hit rate measured first. Embedding cost for 2M chunks × ~500 tokens ≈ 1B tokens, a one-off that incremental sync avoids repeating.
+**Rough cost model.** `daily cost = questions × cache-miss rate × (input tokens × input price + output tokens × output price)`. Live `llm_calls` (small sample, gpt-4o-mini) averaged ~2,100 input + ~80 output tokens and about **$0.0002–$0.0005** per answered call at the configured `$0.15` / `$0.60` per million prices — lower than the earlier illustrative ~$0.00063 because outputs were short. At 20,000 generated answers/day that is still on the order of **$4–$10/day** before caching/gates, so `DAILY_COST_CAP_USD=10` remains tight unless cache hit rate is high. Embedding cost for 2M chunks × ~500 tokens ≈ 1B tokens, a one-off that incremental sync avoids repeating.
 
 ## 4. Failure modes
 
@@ -132,7 +132,7 @@ These are playbook-style estimates, not measurements.
 
 ## 5. Quality: how we know a prompt or model is better
 
-`backend/eval/run_eval.py` runs 20 questions (factual, multi-chunk, unanswerable, access-controlled, injection) and reports hit-rate@5, MRR, latency, refusal correctness, canary leaks and injection leaks. A release gate would require: hit-rate and refusal-correctness no worse than baseline, **zero** canary/injection leaks, and acceptable cost and latency. Today this runs with a fake embedder and fake LLM only. The next step is a live run (`--llm real`) with two OpenRouter models, an LLM-as-judge pass (known to be imperfect; spot-check ~5 answers by hand), and a nightly CI schedule (not configured). The labelled set should grow from real tickets (unanswerable questions) and, if built, thumbs-down feedback. Any prompt change bumps `PROMPT_VERSION` and is recorded in `docs/prompts.md`; the cache key includes it.
+`backend/eval/run_eval.py` runs 20 questions (factual, multi-chunk, unanswerable, access-controlled, injection) and reports hit-rate@5, MRR, latency, refusal correctness, canary leaks and injection leaks. A release gate would require: hit-rate and refusal-correctness no worse than baseline, **zero** canary/injection leaks, and acceptable cost and latency. The published comparison table still uses `FakeEmbedder` / `FakeLlm` for cheap reproducibility; the **live product** is separately verified with real embeddings and OpenRouter (see [docs/eval.md](docs/eval.md)). Next improvements: harness retrieval scoring with the production embedder, `--llm real` + LLM-as-judge (spot-check ~5 by hand), two-model compare, nightly CI (not configured). The labelled set should grow from real tickets (unanswerable questions) and, if built, thumbs-down feedback. Any prompt change bumps `PROMPT_VERSION` and is recorded in `docs/prompts.md`; the cache key includes it.
 
 ## 6. RAG vs. fine-tuning
 

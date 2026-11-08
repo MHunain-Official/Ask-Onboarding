@@ -1,6 +1,6 @@
 # Changelog
 
-Format follows [Keep a Changelog](https://keepachangelog.com/). No release has been tagged yet and the repo has no commits; everything below is unreleased.
+Format follows [Keep a Changelog](https://keepachangelog.com/). No release tag yet; history is on `main` (conventional commits from Phase 0 onward).
 
 ## [Unreleased]
 
@@ -13,8 +13,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). No release has b
 - **Audit and admin:** `llm_calls` and `audit_events` recording; `/api/admin` stats, request list/detail and audit events.
 - **Frontend:** login, chat with citations and source drawer, upload status table, tickets, admin dashboard, SSE parser.
 - **Security:** CSRF header on state-changing routes, per-user rate limits (chat and upload), log-only injection flagger, canary leakage and injection test suites.
-- **Evaluation:** 20-question set and harness (`backend/eval`); results in `docs/eval.md` (fake embedder and fake LLM only).
+- **Evaluation:** 20-question set and harness (`backend/eval`); FakeEmbedder comparison table plus live product verification notes in `docs/eval.md`.
 - **Ship (Phase 9):** README, ARCHITECTURE, AI_LOG, SECURITY, threat model, runbook, cheatsheet, ADRs 001–008, CONTRIBUTING, `docker-compose.prod.yml`, `Caddyfile`, Dependabot config, `RATE_LIMIT_UPLOAD_PER_MINUTE` and production variables in `.env.example`.
+- **Live ops:** app exercised with real OpenAI embeddings and OpenRouter; Vercel frontend + VPS API deploy.
 
 ### Fixed
 - Employee re-upload could downgrade a manager-only document to `all` (now 403).
@@ -23,5 +24,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). No release has b
 - `tsv` generated column rejected an explicit `NULL` on insert.
 - Postgres enums stored Python member names instead of values.
 
+### Docs
+- Clarified “live product verification” vs “formal FakeEmbedder harness” in README, `docs/eval.md`, ARCHITECTURE, and AI_LOG (2026-11-08).
+
 ### Known gaps
-See "Known limitations" in the README. Notably: eval not run with real models, demo auth, no deployment yet, several playbook §5.12 failure-mode items not built (docs/runbook.md §11).
+See "Known limitations" in the README. Notably: harness retrieval still FakeEmbedder (live product path is real), demo auth, several playbook §5.12 failure-mode items not built (docs/runbook.md §11). Demo video/screenshots are owner-owned.

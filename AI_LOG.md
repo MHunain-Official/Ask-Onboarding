@@ -39,13 +39,27 @@ Smaller ones recorded in the walkthrough notes: `UsageDaily` counters incremente
 
 **Environment caveat:** with two agents sharing one Postgres, each suite's `TRUNCATE` fixture occasionally deleted rows under the other's tests (`ForeignKeyViolation`, `ObjectDeletedError`). Affected tests were re-run in isolation and passed. This is a shared-sandbox artifact, not a code defect, but it means "all tests passed" claims in the phase notes come from re-runs, not from one concurrent run.
 
-## What was not verified
+## What was verified later (live product)
 
-- No live-model run exists: no OpenRouter or OpenAI call was made by any test or eval.
-- Eval numbers are from `FakeEmbedder`; no LLM-judge, cost or live-latency data.
-- Phase 9 files (compose prod, Caddyfile, docs) were written but not deployed; `docker-compose.prod.yml` has not been run, and the agent's environment had no `docker compose` plugin to even validate it.
-- No browser-based visual check, Playwright test, Sonar, Trivy, gitleaks or pip-audit run.
-- The repo has no commits yet, so the eval report shows commit `unavailable`.
+After the Phase 9 notes were written, the owner ran the stack with real keys.
+As of commit `97ecb9c` / docs refresh 2026-11-08:
+
+- Local `docker compose` is up; `/ready` returns ok; frontend serves `/login`.
+- OpenAI embeddings + OpenRouter (`openai/gpt-4o-mini`) are used in production
+  paths: `llm_calls` stores real `input_tokens` / `output_tokens` / cost.
+- Manual upload works (example: `HR-Policy-Revised-JUNE-2022.pdf` → 40 chunks,
+  status `ready`). Live answer statuses observed: `ok`, `no_answer`, `ungrounded`.
+- Frontend is on Vercel; API health is reachable on the VPS deploy.
+
+## What is still not verified
+
+- The **formal eval harness table** in `docs/eval.md` is still `FakeEmbedder` /
+  `FakeLlm` (by design for cheap chunk/hybrid comparison). No LLM-as-judge pass
+  and no retrieval hit-rate with live embeddings have been pasted yet.
+- Automated tests still use fakes and need **no** API keys (unchanged).
+- No Playwright smoke test; Sonar / Trivy / gitleaks / pip-audit not treated as
+  green gates in this log.
+- Demo video and screenshot gallery are owner-owned, not agent-owned.
 
 ## What the owner must hand-write or hand-review
 

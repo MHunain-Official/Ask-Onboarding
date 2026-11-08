@@ -2,7 +2,8 @@
 
 A RAG web app that answers employee questions **only from uploaded documents**, shows **exact citations**, says **"I don't know"** when the documents don't contain the answer, and offers to open a **help-desk ticket** instead of guessing.
 
-- **Live URL:** not deployed yet — provide a VPS to deploy (see [docs/runbook.md](docs/runbook.md)).
+- **Local:** <http://localhost:3000> via `docker compose up --build` (verified running with real OpenAI embeddings + OpenRouter answers).
+- **Deployed:** frontend <https://ask-onboarding.vercel.app> · API <http://13.140.183.22:18083> (`/health` ok). Demo video and screenshots are owner-recorded separately (see [docs/runbook.md](docs/runbook.md)).
 - **Stack:** Next.js (App Router, TypeScript, Tailwind, shadcn/ui) · FastAPI (Python 3.12) · PostgreSQL 16 + pgvector · OpenAI embeddings · OpenRouter for answers.
 - **Design docs:** [ARCHITECTURE.md](ARCHITECTURE.md) · [SECURITY.md](SECURITY.md) · [docs/eval.md](docs/eval.md) · [docs/cheatsheet.md](docs/cheatsheet.md) · [AI_LOG.md](AI_LOG.md)
 
@@ -44,26 +45,29 @@ Not captured yet. Run the app locally and capture: login, upload status table, c
 | Upload PDF/MD/TXT; list with processing/ready/failed | Built | `routers/documents.py`, `frontend/src/app/(app)/upload` |
 | Streaming chat with history | Built | `routers/chat.py`, `services/answer_service.py`, `lib/sse.ts` |
 | Clickable citations open source + exact passage | Built | `GET /api/chunks/{id}`, `SourceDrawer` |
-| Empty / loading / error states | Built (not visually verified in a browser by the agent) | `frontend/src/app` |
-| Ingestion → chunks → embeddings → pgvector | Built | `app/ingestion/`, `app/embeddings/` |
-| Retrieval endpoint + streaming answer endpoint | Built | `POST /api/retrieve`, `POST /api/chat/stream` |
-| Honest "no answer" + ticket offer tool | Built | `retrieval/gate.py`, `llm/tools.py`, `services/ticket_service.py` |
+| Empty / loading / error states | Built | `frontend/src/app` |
+| Ingestion → chunks → embeddings → pgvector | Built + live-verified (e.g. uploaded HR PDF → 40 chunks `ready`) | `app/ingestion/`, `app/embeddings/` |
+| Retrieval endpoint + streaming answer endpoint | Built + live-verified with OpenRouter | `POST /api/retrieve`, `POST /api/chat/stream` |
+| Honest "no answer" + ticket offer tool | Built (live `llm_calls` include `no_answer` rows) | `retrieval/gate.py`, `llm/tools.py`, `services/ticket_service.py` |
 | Re-upload replaces old chunks atomically | Built, tested | `ingestion/pipeline.py::_swap_chunks`, `tests/integration/test_reupload.py` |
 | Keys server-side, `.env.example` | Built | `app/config.py`, `.env.example` |
-| `docker compose up` from a fresh clone | Compose file written; full fresh-clone run not re-verified for Phase 9 | `docker-compose.yml` |
+| `docker compose up` from a fresh clone | Built; local stack verified running | `docker-compose.yml` |
 | Automated tests (chunking, retrieval, no-answer) | Built | `backend/tests/` |
-| Stretch: evaluation harness | Built (fake-embedder numbers only) | `backend/eval/`, [docs/eval.md](docs/eval.md) |
+| Stretch: evaluation harness | Built | `backend/eval/`, [docs/eval.md](docs/eval.md) |
 | Stretch: access control, proven | Built | `security.py`, `tests/security/test_canary_leakage.py` |
 | Stretch: prompt-injection defence + test | Built | `tests/security/test_injection.py` |
 | Stretch: audit/observability admin | Built | `routers/admin.py`, `llm_calls`, `audit_events` |
 | README, ARCHITECTURE, AI_LOG | Written | this repo root |
-| Demo video, live deployment | **Not done** | needs the owner / a VPS |
+| Live deployment | Backend + frontend deployed | Vercel + VPS API (see top of README) |
+| Demo video / screenshots | Owner records separately | not part of the code deliverable |
 
 ## Evaluation results
 
-Source: [docs/eval.md](docs/eval.md), generated 2026-11-06 21:10:51 UTC (commit hash was `unavailable`: the repo has no commits yet). 20 questions over the 25 sample documents.
+See [docs/eval.md](docs/eval.md) for the full write-up. Short version:
 
-> **These numbers use `FakeEmbedder` (a deterministic bag-of-words embedder) and `FakeLlm`, not OpenAI embeddings or a real model.** They are real measurements of that setup. They do **not** show how the production embedder or any OpenRouter model performs, and there is no LLM-judge, cost or live-latency comparison yet.
+**A. Live product (real OpenAI embeddings + OpenRouter)** — verified in the local DB (commit `97ecb9c`): 27 ready docs / 154 chunks; uploaded `HR-Policy-Revised-JUNE-2022.pdf` produced **40 chunks**; chat rows use `openai/gpt-4o-mini` with real token/cost accounting; statuses seen include `ok`, `no_answer`, and `ungrounded`.
+
+**B. Formal harness table (chunk size × hybrid)** — still scored with `FakeEmbedder` / `FakeLlm` so the comparison is cheap and reproducible (generated 2026-11-06). These numbers chose the defaults; they are not live-embedding hit-rates.
 
 | Chunk | Overlap | Hybrid | Hit-rate@5 | MRR | Unanswerable refusal | Canary leaks | Injection leaks |
 |---:|---:|---|---:|---:|---:|---:|---:|
@@ -72,10 +76,9 @@ Source: [docs/eval.md](docs/eval.md), generated 2026-11-06 21:10:51 UTC (commit 
 | 500 | 80 | off | 100.0% (20/20) | 0.760 | 100.0% | 0 | 0 |
 | 500 | 80 | on | 100.0% (20/20) | 0.892 | 100.0% | 0 | 0 |
 
-What the numbers support: hybrid (vector + full-text, RRF) raised MRR from 0.760 to 0.892 at 500/80, and 500/80 matched or beat 300/60 on hit-rate. Those are the reasons the defaults are chunk 500 / overlap 80 / hybrid on. "Unanswerable refusal" and "Injection leaks" in fake mode check scripted behaviour, not model judgement.
+What the harness numbers support: hybrid raised MRR from 0.760 to 0.892 at 500/80, and 500/80 matched or beat 300/60 on hit-rate → defaults are chunk 500 / overlap 80 / hybrid on.
 
-Not yet measured (needs real keys): two-model comparison, LLM-as-judge quality, cost per run, cache hit rate on a repeat set, semantic-cache false-hit rate (the semantic cache stays **off**), and `MIN_SIMILARITY` tuning on real embeddings (0.30 is the playbook starting value, not a tuned one).
-
+Still not measured in the harness: retrieval hit-rate with `text-embedding-3-small`, two-model comparison, LLM-as-judge, cache hit rate on a repeat set, semantic-cache false-hit rate (semantic cache stays **off**), and a tuned `MIN_SIMILARITY` on real embeddings (0.30 remains the playbook starting value).
 ## Running checks
 
 ```bash
@@ -133,8 +136,8 @@ Stated plainly so nobody has to find them in review:
 
 - **Demo auth.** Passwordless login by email. Never expose the demo users on the open internet without the Caddy `basic_auth` block or real auth.
 - **Silent fake fallback.** Empty API keys switch to `FakeLlm`/`FakeEmbedder` with only a log warning. No startup check refuses to run in production without keys.
-- **Eval is FakeEmbedder only so far.** Retrieval hit-rate/MRR numbers in `docs/eval.md` are real for that harness; live OpenRouter quality/cost numbers and the LLM judge were not run in this environment.
-- **`MIN_SIMILARITY=0.30` is untuned on real embeddings.**
+- **Two kinds of “eval”.** The running app uses **real** OpenAI embeddings and OpenRouter (see live verification in [docs/eval.md](docs/eval.md)). The **harness comparison table** (hit-rate/MRR by chunk size / hybrid) still uses `FakeEmbedder` so it stays free and deterministic. A full 20-question harness pass with live embeddings + LLM-as-judge has not been pasted yet.
+- **`MIN_SIMILARITY=0.30` is untuned on real embeddings** (it works in live chat, but was not grid-searched).
 - **Embeddings:** preferred path is OpenAI direct. If OpenAI returns 429/no credits, point `EMBEDDING_BASE_URL` / `EMBEDDING_API_KEY` / `EMBEDDING_MODEL` at OpenRouter (documented in `.env.example`) — the `Embedder` interface already supports a custom base URL.
 - **English-only full-text search** (`to_tsvector('english', ...)`).
 - **Scanned/image-only PDFs are rejected** (no OCR). PDF page limit is `MAX_PDF_PAGES`.
