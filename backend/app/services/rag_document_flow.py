@@ -17,12 +17,12 @@ from app.models import AccessLevel, Conversation, MessageRole, User
 from app.retrieval.gate import passes_similarity_gate
 from app.retrieval.hybrid import retrieve
 from app.security import allowed_access_levels
-from app.services.abbreviations import expand_abbreviations
 from app.services.budget_service import check_budget
 from app.services.cache_hit_response import cache_hit_response
 from app.services.cache_service import cache_scope, get_cached_answer
 from app.services.conversation_service import persist_message
 from app.services.fallback_responses import budget_degraded_response, no_answer_response
+from app.services.follow_up_query import build_retrieval_question
 from app.services.single_flight_dispatch import run_with_single_flight
 from app.services.source_prep import build_sources, drop_near_duplicates
 from app.services.stream_events import SseEvent, trace_event
@@ -48,14 +48,16 @@ def run_document_rag(
     is_follow_up = len(history) > 0
     persist_message(db, conversation.id, MessageRole.USER, question)
     cacheable = settings.cache_enabled and not is_follow_up
-    retrieval_question = expand_abbreviations(question)
+    # Retrieval may prepend the previous user question for short follow-ups;
+    # the LLM still sees `question` + history separately (prompts.py).
+    retrieval_question = build_retrieval_question(question, history)
 
     if retrieval_question != question:
         yield trace_event(
             "expand",
             "done",
-            "Expanded abbreviations",
-            f"Retrieval query: “{retrieval_question[:160]}”",
+            "Expanded retrieval query",
+            f"Retrieval query: “{retrieval_question[:200]}”",
         )
 
     yield trace_event(

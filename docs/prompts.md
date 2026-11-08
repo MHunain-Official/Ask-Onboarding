@@ -96,19 +96,24 @@ QUESTION: {question}
 
 ### Conversation history
 
-The simpler of the two options described in AGENTS.md §5.5 was chosen:
-**retrieval always runs on the latest question alone** (no query
-rewriting). History is included for the model's benefit on follow-ups —
-the last 4 turns (`MAX_HISTORY_TURNS = 4` in `conversation_service.py`,
-i.e. up to 8 messages: 4 user + 4 assistant), as plain
-`{role, content}` pairs built from each message's already-persisted,
-already-cited `content`. History never repeats an old SOURCES block,
-because a persisted message's content is the final display text, not the
-prompt that produced it. One consequence, enforced in `answer_service.py`:
-history must be loaded **before** the current turn's question is
-persisted, or every question would see itself as the newest row in its
-own history and be wrongly treated as a follow-up (this was caught by a
-failing cache test — see `phase-4.md`).
+History is included for the model's benefit on follow-ups — the last 4
+turns (`MAX_HISTORY_TURNS = 4` in `conversation_service.py`, i.e. up to 8
+messages: 4 user + 4 assistant), as plain `{role, content}` pairs built
+from each message's already-persisted, already-cited `content`. History
+never repeats an old SOURCES block, because a persisted message's content
+is the final display text, not the prompt that produced it. One
+consequence, enforced in `answer_service.py`: history must be loaded
+**before** the current turn's question is persisted, or every question
+would see itself as the newest row in its own history and be wrongly
+treated as a follow-up (this was caught by a failing cache test — see
+`phase-4.md`).
+
+**Retrieval on follow-ups:** there is still no LLM query-rewriter. For
+short/referential follow-ups (e.g. `thora detail mai batoo gai ?`),
+`follow_up_query.build_retrieval_question` prepends the previous user
+question for search only, so hybrid retrieval stays on the prior topic
+while the LLM still receives the real follow-up text + history. Clear
+standalone questions (`How do I request PTO?…`) are not rewritten.
 
 ### Sampling and limits
 
