@@ -10,6 +10,7 @@ belongs in the query path, not as an afterthought).
 
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -114,7 +115,7 @@ def list_audit_events(
     return AuditEventListResponse(items=[to_audit_event_public(row) for row in rows], total=total)
 
 
-def _docs_root():
+def _docs_root() -> tuple[Path, bool]:
     settings = get_settings()
     configured = settings.project_docs_root.strip() or None
     return resolve_docs_root(configured), configured is not None

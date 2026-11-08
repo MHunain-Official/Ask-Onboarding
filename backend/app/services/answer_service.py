@@ -10,7 +10,7 @@ from collections.abc import Callable, Generator
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.llm.base import LlmClient
+from app.llm.base import ChatMessage, LlmClient
 from app.models import Conversation, MessageRole, User
 from app.schemas import ChatRequest
 from app.security_hardening import matches_injection_pattern
@@ -125,7 +125,7 @@ def _handle_conversation_meta(
     db: Session,
     conversation: Conversation,
     question: str,
-    history: list,
+    history: list[ChatMessage],
 ) -> Generator[SseEvent, None, None]:
     """Answer "what did we talk about?" from chat history — no retrieval/LLM."""
     persist_message(db, conversation.id, MessageRole.USER, question)
@@ -154,13 +154,13 @@ def _handle_explain_simpler(
     db: Session,
     conversation: Conversation,
     question: str,
-    history: list,
+    history: list[ChatMessage],
     llm_client: LlmClient,
     settings: Settings,
     cancel_check: Callable[[], bool] | None,
 ) -> Generator[SseEvent, None, None]:
     """Rewrite the last assistant answer in plain words without new retrieval."""
-    from app.llm.base import ChatMessage, StreamToken
+    from app.llm.base import StreamToken
 
     persist_message(db, conversation.id, MessageRole.USER, question)
     last_answer = next((m.content for m in reversed(history) if m.role == "assistant"), None)

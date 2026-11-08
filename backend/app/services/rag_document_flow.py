@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.embeddings.factory import build_embedder
-from app.llm.base import LlmClient
+from app.llm.base import ChatMessage, LlmClient
 from app.llm.prompts import build_messages, truncate_sources_to_token_budget
 from app.models import AccessLevel, Conversation, MessageRole, User
 from app.retrieval.gate import passes_similarity_gate
@@ -36,7 +36,7 @@ def run_document_rag(
     user: User,
     request_id: str,
     question: str,
-    history: list,
+    history: list[ChatMessage],
     settings: Settings,
     llm_client: LlmClient,
     cancel_check: Callable[[], bool] | None,
@@ -142,7 +142,7 @@ def _retrieve_and_answer(
     request_id: str,
     question: str,
     retrieval_question: str,
-    history: list,
+    history: list[ChatMessage],
     allowed_levels: list[AccessLevel],
     scope: str,
     cacheable: bool,
