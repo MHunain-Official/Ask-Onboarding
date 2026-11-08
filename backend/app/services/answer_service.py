@@ -44,7 +44,12 @@ def stream_chat_answer(
 ) -> Generator[SseEvent, None, None]:
     conversation = load_or_create_conversation(db, user, body.conversation_id)
     yield meta_event(request_id, str(conversation.id))
-    yield trace_event("receive", "done", "Received question", "Session authenticated · request accepted")
+    yield trace_event(
+        "receive",
+        "done",
+        "Received question",
+        "Session authenticated · request accepted",
+    )
 
     # Cheap, log-only prompt-injection flagger (§5.8).
     if matches_injection_pattern(body.question):

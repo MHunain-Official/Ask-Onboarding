@@ -2,7 +2,7 @@
 
 from uuid import uuid4
 
-from app.retrieval.hybrid import RetrievedChunk, RetrievalResult
+from app.retrieval.hybrid import RetrievalResult, RetrievedChunk
 from app.services.stream_events import trace_event
 from app.services.trace_format import format_gate_detail, format_retrieval_detail
 

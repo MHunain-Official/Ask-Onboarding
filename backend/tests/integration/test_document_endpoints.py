@@ -70,7 +70,9 @@ def test_delete_document_removes_it_from_the_list(make_client, manager_user: Use
     assert all(item["id"] != document_id for item in listing["items"])
 
 
-def test_get_document_content_returns_highlighted_passage(make_client, db, manager_user: User) -> None:
+def test_get_document_content_returns_highlighted_passage(
+    make_client, db, manager_user: User
+) -> None:
     client = make_client(manager_user)
     upload = client.post(
         "/api/documents",

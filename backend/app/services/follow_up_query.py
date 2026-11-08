@@ -46,9 +46,7 @@ def looks_like_follow_up(question: str) -> bool:
         return True
     words = re.findall(r"[A-Za-z0-9']+", cleaned)
     # Vague short turns without a new interrogative topic ("ok and?", "aur?").
-    if len(words) <= 8 and not _STANDALONE_QUESTION.search(cleaned):
-        return True
-    return False
+    return bool(len(words) <= 8 and not _STANDALONE_QUESTION.search(cleaned))
 
 
 def build_retrieval_question(question: str, history: list[ChatMessage]) -> str:

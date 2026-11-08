@@ -113,7 +113,12 @@ def generate_and_stream_answer(
 
     answer_text = "".join(text_parts)
     if stream_error is not None and not text_parts:
-        yield trace_event("generate", "failed", "Generating answer", "Stream failed before any tokens")
+        yield trace_event(
+            "generate",
+            "failed",
+            "Generating answer",
+            "Stream failed before any tokens",
+        )
         yield from provider_unavailable_response(
             db,
             conversation,

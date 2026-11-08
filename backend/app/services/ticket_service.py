@@ -76,7 +76,10 @@ def update_ticket_status(
     request_id: str | None = None,
 ) -> Ticket:
     if not can_manage_tickets(actor):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only managers and admins may update tickets")
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Only managers and admins may update tickets",
+        )
     if new_status not in _STAFF_STATUSES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unknown ticket status")
     ticket = db.get(Ticket, ticket_id)

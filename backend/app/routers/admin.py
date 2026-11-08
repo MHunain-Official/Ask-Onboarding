@@ -14,9 +14,9 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import AuditEvent, LlmCall, LlmCallStatus, UserRole
-from app.config import get_settings
 from app.schemas import (
     AdminStats,
     AuditEventListResponse,
