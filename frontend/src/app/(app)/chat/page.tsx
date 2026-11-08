@@ -2,6 +2,7 @@
 
 import { History, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { ChatComposer } from "@/components/ChatComposer";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -12,7 +13,7 @@ import { SourceDrawer } from "@/components/SourceDrawer";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useChatStream } from "@/hooks/useChatStream";
-import { listConversations } from "@/lib/api";
+import { deleteConversation, listConversations } from "@/lib/api";
 import type { Citation, ConversationSummary } from "@/lib/types";
 
 const STARTER_QUESTIONS = [
@@ -72,6 +73,21 @@ export default function ChatPage() {
     chat.reset();
   }
 
+  async function handleDeleteConversation(id: string) {
+    try {
+      await deleteConversation(id);
+      setConversations((current) => current?.filter((item) => item.id !== id) ?? null);
+      if (chat.conversationId === id) {
+        setHistoryOpen(false);
+        chat.reset();
+      }
+      toast.success("Chat deleted");
+    } catch {
+      toast.error("Couldn't delete that chat");
+      throw new Error("delete failed");
+    }
+  }
+
   const sidebar = (
     <ConversationSidebar
       conversations={conversations}
@@ -80,6 +96,7 @@ export default function ChatPage() {
       onSelect={selectConversation}
       onNewChat={startNewChat}
       onRetry={loadConversations}
+      onDelete={handleDeleteConversation}
     />
   );
 

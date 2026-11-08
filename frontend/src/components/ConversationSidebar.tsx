@@ -1,6 +1,7 @@
 "use client";
 
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Skeleton } from "@/components/Skeleton";
@@ -16,6 +17,7 @@ interface ConversationSidebarProps {
   onSelect: (id: string) => void;
   onNewChat: () => void;
   onRetry: () => void;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export function ConversationSidebar({
@@ -25,7 +27,21 @@ export function ConversationSidebar({
   onSelect,
   onNewChat,
   onRetry,
+  onDelete,
 }: ConversationSidebarProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(id: string, title: string) {
+    const label = title.trim() || "this chat";
+    if (!window.confirm(`Delete “${label}”? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="flex h-full flex-col gap-3 p-3">
       <Button onClick={onNewChat} className="w-full rounded-xl">
@@ -46,28 +62,51 @@ export function ConversationSidebar({
           </p>
         ) : (
           <ul className="grid gap-1">
-            {conversations.map((conversation) => (
-              <li key={conversation.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(conversation.id)}
-                  aria-current={conversation.id === activeId ? "true" : undefined}
-                  className={cn(
-                    "w-full rounded-xl px-2.5 py-2 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/60",
-                    conversation.id === activeId
-                      ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-border/70"
-                      : "hover:bg-muted/80",
-                  )}
-                >
-                  <span className="block truncate text-sm font-medium">
-                    {conversation.title?.trim() || "New chat"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {formatDate(conversation.created_at)}
-                  </span>
-                </button>
-              </li>
-            ))}
+            {conversations.map((conversation) => {
+              const title = conversation.title?.trim() || "New chat";
+              const isActive = conversation.id === activeId;
+              const isDeleting = deletingId === conversation.id;
+              return (
+                <li key={conversation.id} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => onSelect(conversation.id)}
+                    disabled={isDeleting}
+                    aria-current={isActive ? "true" : undefined}
+                    className={cn(
+                      "w-full rounded-xl py-2 pr-10 pl-2.5 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/60",
+                      isActive
+                        ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-border/70"
+                        : "hover:bg-muted/80",
+                      isDeleting && "opacity-50",
+                    )}
+                  >
+                    <span className="block truncate text-sm font-medium">{title}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {formatDate(conversation.created_at)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleDelete(conversation.id, title);
+                    }}
+                    disabled={isDeleting}
+                    aria-label={`Delete conversation ${title}`}
+                    title="Delete chat"
+                    className={cn(
+                      "absolute top-1/2 right-1.5 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors",
+                      "hover:bg-destructive/15 hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/60",
+                      "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
+                      isActive && "md:opacity-100",
+                    )}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden="true" />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

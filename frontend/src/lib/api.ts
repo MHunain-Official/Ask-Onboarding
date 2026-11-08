@@ -196,6 +196,10 @@ export function getConversation(conversationId: string): Promise<ConversationDet
   return request<ConversationDetail>(`/api/conversations/${conversationId}`);
 }
 
+export function deleteConversation(conversationId: string): Promise<void> {
+  return request<void>(`/api/conversations/${conversationId}`, { method: "DELETE" });
+}
+
 // --- Tickets ---
 
 export async function listTickets(): Promise<Ticket[]> {

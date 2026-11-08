@@ -14,7 +14,7 @@ from app.config import Settings, get_settings
 from app.database import get_db
 from app.llm.base import LlmClient
 from app.llm.factory import get_llm_client
-from app.models import Conversation, Message, MessageRole, User
+from app.models import Conversation, LlmCall, Message, MessageRole, Ticket, User
 from app.schemas import (
     ChatRequest,
     ConversationDetailResponse,
@@ -25,6 +25,7 @@ from app.schemas import (
 from app.security import require_csrf_header, require_user
 from app.security_hardening import require_chat_rate_limit
 from app.services.answer_service import stream_chat_answer
+from app.services.audit_service import record_audit_event
 from app.services.conversation_service import title_from_question
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -110,9 +111,7 @@ def get_conversation(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ) -> ConversationDetailResponse:
-    conversation = db.get(Conversation, conversation_id)
-    if conversation is None or conversation.user_id != user.id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
+    conversation = _owned_conversation(db, conversation_id, user)
     messages = (
         db.query(Message)
         .filter(Message.conversation_id == conversation.id)
@@ -125,3 +124,45 @@ def get_conversation(
         created_at=conversation.created_at,
         messages=[MessagePublic.model_validate(m) for m in messages],
     )
+
+
+@router.delete(
+    "/conversations/{conversation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_csrf_header)],
+)
+def delete_conversation(
+    conversation_id: uuid.UUID,
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Users may delete only their own chats. Messages cascade; tickets and
+    llm_calls keep their rows but drop the conversation link so audit history
+    is not erased by a sidebar cleanup."""
+    conversation = _owned_conversation(db, conversation_id, user)
+    title = conversation.title
+    db.query(Ticket).filter(Ticket.conversation_id == conversation.id).update(
+        {Ticket.conversation_id: None},
+        synchronize_session=False,
+    )
+    db.query(LlmCall).filter(LlmCall.conversation_id == conversation.id).update(
+        {LlmCall.conversation_id: None},
+        synchronize_session=False,
+    )
+    db.delete(conversation)
+    db.commit()
+    record_audit_event(
+        db,
+        event_type="conversation_deleted",
+        request_id=getattr(request.state, "request_id", None),
+        user_id=user.id,
+        details={"conversation_id": str(conversation_id), "title": title},
+    )
+
+
+def _owned_conversation(db: Session, conversation_id: uuid.UUID, user: User) -> Conversation:
+    conversation = db.get(Conversation, conversation_id)
+    if conversation is None or conversation.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
+    return conversation
