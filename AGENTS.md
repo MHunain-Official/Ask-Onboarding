@@ -633,3 +633,4 @@ Include a Mermaid diagram (components: Browser → Caddy → Next.js → FastAPI
 5. Never fabricate metrics, screenshots, test results, or AI_LOG entries. If something wasn't run, say so.
 6. Keep every file small and readable; explain "why" in comments; leave the owner able to maintain it alone.
 7. At the end of each phase, write the walkthrough note and list anything left unfinished honestly.
+8. **Docs stay current:** if a change affects behaviour, APIs, prompts, config, security, deploy, or eval, update the matching living docs (`ARCHITECTURE.md`, `README.md`, `docs/prompts.md`, `docs/cheatsheet.md`, `docs/runbook.md`, `CHANGELOG.md`, etc.) in the **same** change. Cursor rule: `.cursor/rules/documentation.mdc`.
