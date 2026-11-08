@@ -634,3 +634,4 @@ Include a Mermaid diagram (components: Browser → Caddy → Next.js → FastAPI
 6. Keep every file small and readable; explain "why" in comments; leave the owner able to maintain it alone.
 7. At the end of each phase, write the walkthrough note and list anything left unfinished honestly.
 8. **Docs stay current:** if a change affects behaviour, APIs, prompts, config, security, deploy, or eval, update the matching living docs (`ARCHITECTURE.md`, `README.md`, `docs/prompts.md`, `docs/cheatsheet.md`, `docs/runbook.md`, `CHANGELOG.md`, etc.) in the **same** change. Cursor rule: `.cursor/rules/documentation.mdc`.
+9. **Ops safety:** VPS/DB/backend work follows `.cursor/rules/agent-ops-security.mdc` and `docs/agent-ops.md` — ask-onboarding only on the shared host, no secrets in chat, confirm destructive or cross-stack actions with the owner.
