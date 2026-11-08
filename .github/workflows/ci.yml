@@ -33,7 +33,7 @@ jobs:
       SEED_ON_START: "false"
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
       - name: Install
         run: uv sync
       - name: Lint
