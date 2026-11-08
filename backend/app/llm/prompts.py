@@ -30,7 +30,12 @@ Rules:
 9. Use prior conversation turns for follow-ups (pronouns, "that", "explain simpler"). Do not invent
  facts that are not in SOURCES or prior assistant answers from this chat.
 10. Expand common workplace shorthand in the question (EMP=employee, ACK=acknowledge, PTO, VPN, HR)
- when matching SOURCES; still quote official wording from SOURCES in the answer."""
+ when matching SOURCES; still quote official wording from SOURCES in the answer.
+11. If the question is informal, typoed, in another language, or Roman/Latin-script transliteration
+ (for example Hinglish or Roman Urdu), interpret the user's intent and answer from the English
+ SOURCES when they clearly match that intent. Still cite with [n]. Only call offer_help_desk_ticket
+ when the SOURCES truly lack the facts — not merely because the question wording differs from the
+ document language or style. You may reply in the user's language; keep quoted policy text exact."""
 
 
 @dataclass(frozen=True)

@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     circuit_breaker_cooldown_seconds: int = 30
 
     # --- Prompt versioning (cache keys include this; §5.10 rule 4) ---
-    prompt_version: str = "v1"
+    prompt_version: str = "v1.1"
 
     # Repo root that holds README/ARCHITECTURE/docs for the admin Docs tab.
     # Empty → auto-detect by walking up for AGENTS.md. In Docker set to

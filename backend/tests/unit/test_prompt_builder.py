@@ -54,6 +54,12 @@ def test_build_user_message_escapes_closing_source_tag_in_chunk_text() -> None:
     assert "&lt;/source&gt;" in message
 
 
+def test_system_prompt_allows_informal_and_multilingual_intent() -> None:
+    """v1.1: Roman/Hinglish questions must not auto-refuse when SOURCES match."""
+    assert "Roman/Latin-script transliteration" in SYSTEM_PROMPT_V1
+    assert "not merely because the question wording differs" in SYSTEM_PROMPT_V1
+
+
 def test_build_messages_history_excludes_old_sources_block() -> None:
     history = [
         ChatMessage(role="user", content="What is the VPN policy?"),
