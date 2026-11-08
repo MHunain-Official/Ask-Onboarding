@@ -33,6 +33,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). No release tag y
 - Clarified “live product verification” vs “formal FakeEmbedder harness” in README, `docs/eval.md`, ARCHITECTURE, and AI_LOG (2026-11-08).
 - Synced ARCHITECTURE / README / cheatsheet / prompts for v1.1, follow-up retrieval, and conversation delete (2026-11-08).
 - Added `.cursor/rules/documentation.mdc`: docs must update in the same change when behaviour warrants it.
+- Added `docs/agent-ops.md` + `.cursor/rules/agent-ops-security.mdc`: VPS/DB/backend agent boundaries and confirmation for critical actions.
 
 ### Known gaps
 See "Known limitations" in the README. Notably: harness retrieval still FakeEmbedder (live product path is real), demo auth, several playbook §5.12 failure-mode items not built (docs/runbook.md §11). Demo video/screenshots are owner-owned.
