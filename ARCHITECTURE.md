@@ -40,7 +40,8 @@ sequenceDiagram
     alt cache hit and sources still current
         A-->>U: replay saved answer + citations
     else miss
-        A->>E: embed question (query_embedding_cache first)
+        A->>A: retrieval query (abbrev + optional prior-question for follow-ups)
+        A->>E: embed retrieval query (query_embedding_cache first)
         A->>D: vector top-20 + full-text top-20, WHERE access_level IN (...)
         A->>A: RRF fuse, top-k 5, similarity gate
         alt best similarity < MIN_SIMILARITY
@@ -66,15 +67,17 @@ Path of one question, with the file that owns each step:
 3. **Orchestration.** `services/answer_service.py` runs the steps in order and delegates to `single_flight_dispatch.py` → `answer_generation.py` → `answer_persistence.py` (split only to keep files short).
 4. **Query router** (`services/query_router.py`): empty, too-long, or small-talk input gets a fixed reply with no retrieval and no LLM call.
 5. **Exact answer cache** (`services/cache_service.py`): key = hash of the normalised question + access scope + `prompt_version` + model. On a hit, every `(document_id, version)` the answer depended on is re-checked; stale entries are invalidated and treated as a miss. Follow-up questions are never cached.
-6. **Retrieval** (`retrieval/`): `vector_search.py` (cosine, `1 - (embedding <=> query)`), `keyword_search.py` (`websearch_to_tsquery` + `ts_rank_cd`), `rrf.py` (`Σ 1/(60+rank)`), `hybrid.py` glue. Both queries filter `access_level` **inside SQL** using `security.py::allowed_access_levels`.
-7. **No-answer gate** (`retrieval/gate.py`): best vector similarity below `MIN_SIMILARITY` → fixed "not found" response plus a ticket offer; the LLM is not called.
-8. **Budget check** (`services/budget_service.py`): over the per-user token cap or global USD cap → degraded "Relevant passages" response instead of a generated answer.
-9. **Prompt build** (`llm/prompts.py`): static system prompt v1 first, numbered `<source>` blocks with `</source>` escaped, last 4 history turns, sources truncated to `MAX_CONTEXT_TOKENS`.
-10. **LLM stream** (`llm/openai_compatible_client.py`, wrapped by `llm/fallback.py` and `llm/circuit_breaker.py`): primary model, then `LLM_FALLBACK_MODEL` on timeout/5xx/429, never on a content refusal. One tool only: `offer_help_desk_ticket` (`llm/tools.py`), which writes nothing.
-11. **Validation** (`llm/grounding_check.py`, `services/citation_support.py`): citations to chunks that were not retrieved are dropped; a non-refusal with no valid citation becomes `ungrounded`; numbers, dates, URLs, emails and commands in the answer must appear in the cited chunks.
-12. **SSE out** (`services/stream_events.py`, `sse-starlette`): `meta`, `token`, `citations`, `ticket_offer`, `done`, `error`. The UI parser is `frontend/src/lib/sse.ts`.
-13. **Persist and audit** (`services/audit_service.py`): the message, an `llm_calls` row (full prompt, response, chunk ids and scores, tokens, cost, timings, status, cache_hit), and `audit_events` for sensitive actions.
-14. **Ticket** only on a human click: `POST /api/tickets` (`services/ticket_service.py`), user taken from the session, identical open tickets within 10 minutes deduplicated.
+6. **Retrieval query** (`services/follow_up_query.py` + `abbreviations.py`): for short/referential follow-ups (e.g. “thora detail mai batoo gai?”), search uses the previous user question prepended to this turn — **retrieval only**. There is still no LLM query-rewriter. Clear standalone questions are searched as-is.
+7. **Retrieval** (`retrieval/`): `vector_search.py` (cosine, `1 - (embedding <=> query)`), `keyword_search.py` (`websearch_to_tsquery` + `ts_rank_cd`), `rrf.py` (`Σ 1/(60+rank)`), `hybrid.py` glue. Both queries filter `access_level` **inside SQL** using `security.py::allowed_access_levels`.
+8. **No-answer gate** (`retrieval/gate.py`): best vector similarity below `MIN_SIMILARITY` → fixed "not found" response plus a ticket offer; the LLM is not called.
+9. **Budget check** (`services/budget_service.py`): over the per-user token cap or global USD cap → degraded "Relevant passages" response instead of a generated answer.
+10. **Prompt build** (`llm/prompts.py`): static system prompt **v1.1** first, numbered `<source>` blocks with `</source>` escaped, last 4 history turns, sources truncated to `MAX_CONTEXT_TOKENS`. Rule 11 covers informal / Roman-script questions.
+11. **LLM stream** (`llm/openai_compatible_client.py`, wrapped by `llm/fallback.py` and `llm/circuit_breaker.py`): primary model, then `LLM_FALLBACK_MODEL` on timeout/5xx/429, never on a content refusal. One tool only: `offer_help_desk_ticket` (`llm/tools.py`), which writes nothing.
+12. **Validation** (`llm/grounding_check.py`, `services/citation_support.py`): citations to chunks that were not retrieved are dropped; a non-refusal with no valid citation becomes `ungrounded`; numbers, dates, URLs, emails and commands in the answer must appear in the cited chunks.
+13. **SSE out** (`services/stream_events.py`, `sse-starlette`): `meta`, `token`, `citations`, `ticket_offer`, `done`, `error`. The UI parser is `frontend/src/lib/sse.ts`.
+14. **Persist and audit** (`services/audit_service.py`): the message, an `llm_calls` row (full prompt, response, chunk ids and scores, tokens, cost, timings, status, cache_hit), and `audit_events` for sensitive actions.
+15. **Ticket** only on a human click: `POST /api/tickets` (`services/ticket_service.py`), user taken from the session, identical open tickets within 10 minutes deduplicated.
+16. **Delete chat** (`DELETE /api/conversations/{id}`): owner-only; messages cascade; ticket/`llm_calls` rows keep audit history with `conversation_id` cleared. UI: trash control in `ConversationSidebar`.
 
 Ingestion (separate path): `POST /api/documents` validates extension **and** magic bytes, stores the file by UUID, and queues a row. `ingestion/worker.py` claims it with `FOR UPDATE SKIP LOCKED`; `ingestion/pipeline.py` parses (`parsers.py`), chunks (`chunker.py`), reuses embeddings for unchanged chunk text, embeds the rest in batches of ≤ 64, then swaps chunks in one transaction (`_swap_chunks`). A failed re-upload leaves the previous version serving answers.
 
@@ -95,6 +98,8 @@ Ingestion (separate path): `POST /api/documents` validates extension **and** mag
 - 300/60 chunks with vector-only search missed one expected document (95.0%, MRR 0.742). Hybrid fixed it (100.0%, MRR 0.892). With hybrid on, 300/60 and 500/80 tie on both hit-rate and MRR (0.892), so on this small fake-embedder set search mode mattered more than chunk size. We keep 500/80 because it was also 100.0% with hybrid off and keeps sections intact; that is a judgement, not something the eval separates.
 - A pure bag-of-words vector ranker ranks a stopword-stuffed distractor above the real answer (0.86 vs 0.30 similarity); keyword search recovers it (Phase 3 test).
 - Live product path (OpenAI `text-embedding-3-small` + OpenRouter `openai/gpt-4o-mini`) works end-to-end: large PDF ingest (40 chunks), streaming answers with token/cost rows in `llm_calls`, and grounding can mark `ungrounded`. Observed answered-call cost was roughly **$0.0002–$0.0005**. Still open: formal harness hit-rate with live embeddings, two-model comparison, and semantic-cache false-hit rate.
+- Roman Urdu / Hinglish questions (e.g. “slack kaio norms kia hai?”) sometimes made `gpt-4o-mini` call the ticket tool even when Slack sources were retrieved; prompt **v1.1** rule 11 tells the model to interpret intent and still answer from English SOURCES.
+- Follow-ups like “thora detail mai batoo gai?” used to search only that phrase, miss Slack chunks, and trip the similarity gate before the LLM saw history. Lightweight retrieval expansion (`follow_up_query.py`) fixed it without a rewrite model.
 
 ## 3. Scaling to 5,000 employees, 200,000 docs, 20,000 questions/day
 

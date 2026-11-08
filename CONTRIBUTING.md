@@ -38,10 +38,13 @@ Individual targets: `make lint`, `make typecheck`, `make test`, `make eval`. No 
 
 ## Documentation
 
+**Docs are part of the change.** If behaviour, APIs, prompts, config, security, deploy, or eval change, update the matching living docs in the **same** commit/PR. Cursor enforces this via `.cursor/rules/documentation.mdc`.
+
 - Prompt changes: bump `PROMPT_VERSION` and add the new text to `docs/prompts.md`.
 - Eval numbers: paste only real output of `make eval` with date and commit. Never estimate.
 - New design decision: add a short ADR in `docs/adr/`.
 - Each build phase ends with a note in `docs/walkthrough/phase-N.md`.
 - Update [CHANGELOG.md](CHANGELOG.md) under *Unreleased*.
+- Typical map: product path → `ARCHITECTURE.md`; features/limitations → `README.md`; owner “change X” → `docs/cheatsheet.md`; ops → `docs/runbook.md`.
 
 See [docs/cheatsheet.md](docs/cheatsheet.md) for "to change X, edit Y, run Z".

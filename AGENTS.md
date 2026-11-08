@@ -268,7 +268,7 @@ SOURCES:
 QUESTION: {question}
 ```
 Escape any literal `</source>` inside chunk text so documents cannot close the tag.
-Conversation history: include the last 4 turns (user questions + assistant answers only, **not** old sources) so follow-ups work; retrieval uses the **rewritten standalone question** only if you implement query rewriting — otherwise retrieve on the latest question alone. Pick the simpler one, document it.
+Conversation history: include the last 4 turns (user questions + assistant answers only, **not** old sources) so follow-ups work. Prefer no LLM query rewriter; if follow-ups lose the topic at retrieval time, use a **deterministic** expansion (e.g. prepend the previous user question for short/referential follow-ups) and document it in `docs/prompts.md` / `ARCHITECTURE.md`.
 `temperature=0` (or lowest). `max_tokens` capped from env.
 
 ### 5.6 Tool call and tickets

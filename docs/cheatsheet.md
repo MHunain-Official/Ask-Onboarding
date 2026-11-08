@@ -10,7 +10,9 @@ Run backend tests from `backend/` with `uv run pytest <path> -q`. Integration an
 | **Top-k** | `RETRIEVAL_TOP_K` in `.env` (used by `services/answer_service.py` and `routers/retrieve.py`). Candidate pool: `RETRIEVAL_CANDIDATES`. Debug endpoint accepts `top_k` 1–20 (`schemas.py`). | `uv run pytest tests/integration/test_retrieval.py::test_retrieve_respects_top_k` |
 | **No-answer threshold** | `MIN_SIMILARITY` in `.env`. Logic: `backend/app/retrieval/gate.py`. Re-run the eval with real embeddings before moving it. | `uv run pytest tests/unit/test_gate.py tests/integration/test_no_answer_gate.py` |
 | **Turn hybrid search off/on** | `HYBRID_ENABLED` in `.env`. Fusion: `retrieval/rrf.py`, `retrieval/hybrid.py`. | `uv run pytest tests/unit/test_rrf.py tests/integration/test_retrieval.py` |
-| **System prompt** | `SYSTEM_PROMPT_V1` in `backend/app/llm/prompts.py`. **Bump** `PROMPT_VERSION` in `.env` (and `config.py` default) and record the new text in `docs/prompts.md`, or the answer cache can serve old answers. | `uv run pytest tests/unit/test_prompt_builder.py tests/security/test_injection.py` |
+| **System prompt** | `SYSTEM_PROMPT_V1` in `backend/app/llm/prompts.py` (live text; version is `PROMPT_VERSION`, currently **v1.1**). **Bump** `PROMPT_VERSION` in `.env` (and `config.py` default) and record the new text in `docs/prompts.md`, or the answer cache can serve old answers. | `uv run pytest tests/unit/test_prompt_builder.py tests/security/test_injection.py` |
+| **Follow-up retrieval** | Heuristic in `backend/app/services/follow_up_query.py` (wired from `rag_document_flow.py`). Adjust `looks_like_follow_up` / hints if short follow-ups still miss the prior topic. | `uv run pytest tests/unit/test_follow_up_query.py` |
+| **Delete a chat (API/UI)** | API: `DELETE /api/conversations/{id}` in `routers/chat.py`. UI: `ConversationSidebar` + `deleteConversation` in `lib/api.ts`. | `uv run pytest tests/integration/test_conversation_delete.py` |
 | **Models** | `LLM_MODEL`, `LLM_FALLBACK_MODEL`, `LLM_PRICE_*` in `.env`. No code change. | `uv run pytest tests/unit/test_fallback.py` |
 
 ## Files and roles

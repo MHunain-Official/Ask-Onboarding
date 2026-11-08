@@ -51,6 +51,13 @@ As of commit `97ecb9c` / docs refresh 2026-11-08:
   status `ready`). Live answer statuses observed: `ok`, `no_answer`, `ungrounded`.
 - Frontend is on Vercel; API health is reachable on the VPS deploy.
 
+## Later live fixes (also logged here so reviewers see them)
+
+| # | Mistake | How it was caught | Fix |
+|---|---|---|---|
+| 8 | **Hinglish refusal with good retrieval.** `slack kaio norms kia hai?` retrieved `slack-norms.md` (sim ≥ gate) but the model called `offer_help_desk_ticket` with an empty body (`status=refused`). | Live retrieval track + `llm_calls.tool_calls` on VPS. | Prompt **v1.1** rule 11: interpret informal / Roman-script intent; answer from English SOURCES when they match. |
+| 9 | **Follow-up lost the topic.** `thora detail mai batoo gai?` searched alone, best sim 0.24, gate skipped the LLM even though history had the Slack question. | Same live track (“Finished with a gate / check stop”). | `follow_up_query.build_retrieval_question` prepends the previous user question for short/referential follow-ups (search only). |
+
 ## What is still not verified
 
 - The **formal eval harness table** in `docs/eval.md` is still `FakeEmbedder` /

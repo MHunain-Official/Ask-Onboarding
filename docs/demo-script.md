@@ -124,7 +124,7 @@ Keep this as bullet answers if they interrupt:
 2. **Why tool doesn’t write tickets?** Confused models can’t open tickets; human click + `POST /api/tickets` with session user.
 3. **Why grounding without a second LLM?** Cheap checks: valid `[n]`, facts appear in cited chunks; else `ungrounded`.
 4. **Re-upload safety:** old chunks serve until `_swap_chunks` deletes + inserts in one transaction.
-5. **What you’d change in 10 minutes in an interview:** `MIN_SIMILARITY`, `RETRIEVAL_TOP_K`, or one sentence in `SYSTEM_PROMPT_V1` (+ bump `PROMPT_VERSION`). Point at `docs/cheatsheet.md`.
+5. **What you’d change in 10 minutes in an interview:** `MIN_SIMILARITY`, `RETRIEVAL_TOP_K`, follow-up hints in `follow_up_query.py`, or one sentence in `SYSTEM_PROMPT_V1` (+ bump `PROMPT_VERSION`). Point at `docs/cheatsheet.md`.
 
 Close:
 > “Happy to make a small live change — chunk size, top-k, gate threshold, or prompt — next.”

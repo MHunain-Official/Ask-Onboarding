@@ -1,0 +1,39 @@
+---
+description: Keep project docs in sync whenever a change affects behaviour, APIs, prompts, deploy, or eval
+alwaysApply: true
+---
+
+# Documentation must stay current
+
+When you change product behaviour, APIs, prompts, config, security, deploy, or eval, **update the matching docs in the same change** (same PR/commit when practical). Do not leave documentation behind for a later cleanup.
+
+## What to update (pick every file that applies)
+
+| Kind of change | Update |
+|---|---|
+| Question path, retrieval, cache, gate, LLM, tickets | `ARCHITECTURE.md`, `docs/prompts.md` if prompts change |
+| Prompt / `PROMPT_VERSION` | `docs/prompts.md` (verbatim) + bump version in `.env.example` / `config.py` |
+| Env vars / defaults | `.env.example` (+ comment), `README.md` config table if user-facing |
+| API routes / request-response shape | `ARCHITECTURE.md` or API section in README; OpenAPI is generated from code |
+| “How to change X” owner ops | `docs/cheatsheet.md` |
+| Deploy / backup / outage / VPS | `docs/runbook.md` |
+| Security behaviour or threat | `SECURITY.md`, `docs/threat-model.md` if the threat model changes |
+| Eval method or numbers | `docs/eval.md` (+ README eval table if numbers change) |
+| User-visible features / limitations | `README.md` features checklist + known limitations |
+| Notable shipped change | `CHANGELOG.md` under `[Unreleased]` |
+| Big design choice | new/updated `docs/adr/NNN-*.md` |
+| AI process / caught mistakes | `AI_LOG.md` when relevant |
+
+## Rules
+
+1. **Same change:** if a reviewer would misunderstand the system by reading only the docs, the docs are part of the task — not optional.
+2. **Be honest:** never invent eval numbers, screenshots, or “verified” claims. If something is untested, say so.
+3. **Prompt changes:** bump `PROMPT_VERSION`; paste the new system prompt into `docs/prompts.md`; note why.
+4. **Walkthrough notes:** for phased playbook work, still write `docs/walkthrough/phase-N.md`; that does **not** replace updating the living docs above.
+5. **No drive-by doc rewrites:** only touch sections that the code change made stale.
+
+## Quick check before finishing
+
+- [ ] Would `ARCHITECTURE.md` §1 still name the real files/steps?
+- [ ] Would README features / limitations still be true?
+- [ ] Would cheatsheet still point at the right file for a live interview change?

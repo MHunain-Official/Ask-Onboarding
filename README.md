@@ -44,6 +44,8 @@ Not captured yet. Run the app locally and capture: login, upload status table, c
 |---|---|---|
 | Upload PDF/MD/TXT; list with processing/ready/failed | Built | `routers/documents.py`, `frontend/src/app/(app)/upload` |
 | Streaming chat with history | Built | `routers/chat.py`, `services/answer_service.py`, `lib/sse.ts` |
+| Delete own conversation from history | Built | `DELETE /api/conversations/{id}`, `ConversationSidebar` |
+| Follow-up retrieval stays on prior topic | Built (no LLM rewriter) | `services/follow_up_query.py` |
 | Clickable citations open source + exact passage | Built | `GET /api/chunks/{id}`, `SourceDrawer` |
 | Empty / loading / error states | Built | `frontend/src/app` |
 | Ingestion → chunks → embeddings → pgvector | Built + live-verified (e.g. uploaded HR PDF → 40 chunks `ready`) | `app/ingestion/`, `app/embeddings/` |
@@ -150,7 +152,8 @@ Stated plainly so nobody has to find them in review:
 - **CSP allows `'unsafe-inline'` scripts** (Next.js bootstrap) until nonces are added.
 - **No streaming resume** after a dropped connection; the partial answer is saved and Retry re-asks.
 - **Frontend route protection is client-side**; the backend enforces auth on every API route.
-- **Not built:** feedback thumbs, query rewriting, semantic cache enabled, extractive shortcut enabled, Playwright smoke test.
+- **No LLM query rewriter.** Short/referential follow-ups prepend the previous user question for **search only** (`follow_up_query.py`). A full rewrite model is not used.
+- **Not built:** feedback thumbs, full LLM query rewriting, semantic cache enabled, extractive shortcut enabled, Playwright smoke test.
 - **Not run by the agent:** Sonar, Trivy, gitleaks, pip-audit, a real-browser visual pass, a deployed SSE-through-Caddy check.
 
 ## Repository map
