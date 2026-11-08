@@ -98,8 +98,6 @@ export function ConversationSidebar({
                     className={cn(
                       "absolute top-1/2 right-1.5 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors",
                       "hover:bg-destructive/15 hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/60",
-                      "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
-                      isActive && "md:opacity-100",
                     )}
                   >
                     <Trash2 className="size-3.5" aria-hidden="true" />
