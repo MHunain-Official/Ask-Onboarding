@@ -1,6 +1,6 @@
 # Backend image, shared by the `backend` and `worker` services in
 # docker-compose.yml (worker overrides the CMD).
-FROM python:3.12-slim AS base
+FROM python:3.15-slim AS base
 
 # uv installs and caches dependencies much faster than plain pip.
 COPY --from=ghcr.io/astral-sh/uv:0.5.0 /uv /usr/local/bin/uv
